@@ -186,7 +186,7 @@ pub type earley_item = matcher_pos;
 pub fn nameize(p_s: parse_sess, ms: ~[matcher], res: ~[@named_match])
             -> LinearMap<ident,@named_match> {
     fn n_rec(p_s: parse_sess, m: matcher, res: ~[@named_match],
-             ret_val: LinearMap<ident, @named_match>) {
+             ret_val: &mut LinearMap<ident, @named_match>) {
         match m {
           codemap::spanned {node: match_tok(_), _} => (),
           codemap::spanned {node: match_seq(ref more_ms, _, _, _, _), _} => {
@@ -201,13 +201,14 @@ pub fn nameize(p_s: parse_sess, ms: ~[matcher], res: ~[@named_match])
                 p_s.span_diagnostic.span_fatal(sp, ~"Duplicated bind name: "+
                                                *p_s.interner.get(bind_name))
             }
+            let ret_val = &mut *ret_val;
             ret_val.insert(bind_name, res[idx]);
           }
         }
     }
-    let ret_val = LinearMap::new();
+    let ret_val = ~mut LinearMap::new();
     for ms.each() |m| { n_rec(p_s, *m, res, ret_val) }
-    return ret_val;
+    return *ret_val;
 }
 
 pub enum parse_result {

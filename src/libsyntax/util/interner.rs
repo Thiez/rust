@@ -14,17 +14,18 @@
 
 use core::prelude::*;
 
+use core::mutable::Mut;
 use core::dvec::DVec;
 use core::hashmap::linear::LinearMap;
 
 struct HashInterner<T> {
-    map: ~mut LinearMap<T, uint>,
+    map: LinearMap<T, uint>,
     vect: DVec<T>
 }
 
 pub fn mk<T:Eq IterBytes Hash Const Copy>() -> Interner<T> {
     let m: LinearMap<T, uint> = LinearMap::new();
-    let hi = HashInterner {map: ~mut m, vect: DVec() };
+    let hi = HashInterner {map: m, vect: DVec() };
     (hi as Interner::<T>)
 }
 
@@ -37,14 +38,14 @@ pub fn mk_prefill<T:Eq IterBytes Hash Const Copy>(init: &[T]) -> Interner<T> {
 
 /* when traits can extend traits, we should extend index<uint,T> to get [] */
 pub trait Interner<T:Eq IterBytes Hash Const Copy> {
-    fn intern(&self, T) -> uint;
+    fn intern(&mut self, T) -> uint;
     fn gensym(&self, T) -> uint;
     pure fn get(&self, uint) -> T;
     fn len(&self) -> uint;
 }
 
 pub impl <T:Eq IterBytes Hash Const Copy> HashInterner<T>: Interner<T> {
-    fn intern(&self, val: T) -> uint {
+    fn intern(&mut self, val: T) -> uint {
         pure fn find<T:Eq IterBytes Hash Const Copy>(map: &LinearMap<T, uint>,
                                                 val: T) -> Option<uint> {
             match map.find(&val) {
@@ -52,7 +53,7 @@ pub impl <T:Eq IterBytes Hash Const Copy> HashInterner<T>: Interner<T> {
                 None => None
             }
         }
-        match find(self.map, val) {
+        match find(&self.map, val) {
           Some(idx) => return idx,
           None => {
             let new_idx = self.vect.len();

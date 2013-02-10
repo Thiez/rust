@@ -21,6 +21,7 @@ use core::char;
 use core::cmp;
 use core::str;
 use core::task;
+use core::mutable::Mut;
 use core::hashmap::linear::LinearMap;
 
 #[auto_encode]
@@ -351,21 +352,31 @@ pub mod special_idents {
 }
 
 pub struct ident_interner {
-    priv interner: Interner<@~str>,
+    priv interner: Mut<Interner<@~str>>,
 }
 
 pub impl ident_interner {
-    fn intern(&mut self, val: @~str) -> ast::ident {
-        ast::ident { repr: self.interner.intern(val) }
+    fn intern(&self, val: @~str) -> ast::ident {
+        do self.interner.borrow_mut |m| {
+            ast::ident{ repr: m.intern(val) }
+        }
     }
     fn gensym(&self, val: @~str) -> ast::ident {
-        ast::ident { repr: self.interner.gensym(val) }
+        do self.interner.borrow_imm |m| {
+            ast::ident{ repr: m.gensym(val) }
+        }
     }
     pure fn get(&self, idx: ast::ident) -> @~str {
-        self.interner.get(idx.repr)
+        unsafe { // borrow_imm is not pure.
+            do self.interner.borrow_imm |m| {
+                m.get(idx.repr)
+            }
+        }
     }
     fn len(&self) -> uint {
-        self.interner.len()
+        do self.interner.borrow_imm |m| {
+            m.len()
+        }
     }
 }
 
@@ -427,7 +438,7 @@ pub fn mk_ident_interner() -> @ident_interner {
                 ];
 
                 let rv = @ident_interner {
-                    interner: interner::mk_prefill(init_vec)
+                    interner: Mut(interner::mk_prefill(init_vec))
                 };
 
                 task::local_data::local_data_set(interner_key!(), @rv);
@@ -441,7 +452,7 @@ pub fn mk_ident_interner() -> @ident_interner {
 /* for when we don't care about the contents; doesn't interact with TLD or
    serialization */
 pub fn mk_fake_ident_interner() -> @ident_interner {
-    @ident_interner { interner: interner::mk::<@~str>() }
+    @ident_interner { interner: Mut(interner::mk::<@~str>()) }
 }
 
 /**
