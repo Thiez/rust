@@ -200,6 +200,7 @@ pub fn expand_item_mac(exts: LinearMap<~str, SyntaxExtension>,
         MRAny(_, item_maker, _) =>
             option::chain(item_maker(), |i| {fld.fold_item(i)}),
         MRDef(ref mdef) => {
+            let mut exts = exts;
             exts.insert((*mdef).name, (*mdef).ext);
             None
         }
