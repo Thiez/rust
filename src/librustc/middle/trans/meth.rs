@@ -309,7 +309,7 @@ pub fn trans_static_method_callee(bcx: block,
 
     let mname = if method_id.crate == ast::local_crate {
         match bcx.tcx().items.get(&method_id.node) {
-            ast_map::node_trait_method(trait_method, _, _) => {
+            &ast_map::node_trait_method(trait_method, _, _) => {
                 ast_util::trait_method_to_ty_method(*trait_method).ident
             }
             _ => die!(~"callee is not a trait method")
@@ -363,7 +363,7 @@ pub fn method_with_name(ccx: @crate_ctxt, impl_id: ast::def_id,
                         name: ast::ident) -> ast::def_id {
     if impl_id.crate == ast::local_crate {
         match ccx.tcx.items.get(&impl_id.node) {
-          ast_map::node_item(@ast::item {
+          &ast_map::node_item(@ast::item {
                 node: ast::item_impl(_, _, _, ref ms),
                 _
             }, _) => {
@@ -380,7 +380,7 @@ pub fn method_with_name_or_default(ccx: @crate_ctxt, impl_id: ast::def_id,
                                    name: ast::ident) -> ast::def_id {
     if impl_id.crate == ast::local_crate {
         match ccx.tcx.items.get(&impl_id.node) {
-          ast_map::node_item(@ast::item {
+          &ast_map::node_item(@ast::item {
                 node: ast::item_impl(_, _, _, ref ms), _
           }, _) => {
               let did = method_from_methods(/*bad*/copy *ms, name);
@@ -415,7 +415,7 @@ pub fn method_ty_param_count(ccx: @crate_ctxt, m_id: ast::def_id,
     debug!("method_ty_param_count: m_id: %?, i_id: %?", m_id, i_id);
     if m_id.crate == ast::local_crate {
         match ccx.tcx.items.find(&m_id.node) {
-            Some(ast_map::node_method(m, _, _)) => m.tps.len(),
+            Some(&ast_map::node_method(m, _, _)) => m.tps.len(),
             None => {
                 match ccx.tcx.provided_method_sources.find(&m_id) {
                     Some(source) => {
@@ -425,7 +425,7 @@ pub fn method_ty_param_count(ccx: @crate_ctxt, m_id: ast::def_id,
                     None => die!()
                 }
             }
-            Some(ast_map::node_trait_method(@ast::provided(@ref m), _, _))
+            Some(&ast_map::node_trait_method(@ast::provided(@ref m), _, _))
                 => {
                 m.tps.len()
             }

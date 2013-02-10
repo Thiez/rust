@@ -94,21 +94,21 @@ pub fn type_uses_for(ccx: @crate_ctxt, fn_id: def_id, n_tps: uint)
                                      fn_id_loc))
     };
     match map_node {
-      ast_map::node_item(@ast::item { node: item_fn(_, _, _, ref body),
+      &ast_map::node_item(@ast::item { node: item_fn(_, _, _, ref body),
                                       _ }, _) |
-      ast_map::node_method(@ast::method {body: ref body, _}, _, _) => {
+      &ast_map::node_method(@ast::method {body: ref body, _}, _, _) => {
         handle_body(cx, (*body));
       }
-      ast_map::node_trait_method(*) => {
+      &ast_map::node_trait_method(*) => {
         // This will be a static trait method. For now, we just assume
         // it fully depends on all of the type information. (Doing
         // otherwise would require finding the actual implementation).
         for uint::range(0u, n_tps) |n| { cx.uses[n] |= use_repr|use_tydesc;}
       }
-      ast_map::node_variant(_, _, _) => {
+      &ast_map::node_variant(_, _, _) => {
         for uint::range(0u, n_tps) |n| { cx.uses[n] |= use_repr;}
       }
-      ast_map::node_foreign_item(i@@foreign_item { node: foreign_item_fn(*),
+      &ast_map::node_foreign_item(i@@foreign_item { node: foreign_item_fn(*),
                                                    _ },
                                  abi, _) => {
         if abi == foreign_abi_rust_intrinsic {
@@ -153,10 +153,10 @@ pub fn type_uses_for(ccx: @crate_ctxt, fn_id: def_id, n_tps: uint)
             for uint::range(0u, n_tps) |n| { cx.uses[n] |= flags;}
         }
       }
-      ast_map::node_dtor(_, dtor, _, _) => {
+      &ast_map::node_dtor(_, dtor, _, _) => {
         handle_body(cx, dtor.node.body);
       }
-      ast_map::node_struct_ctor(*) => {
+      &ast_map::node_struct_ctor(*) => {
         // Similarly to node_variant, this monomorphized function just uses
         // the representations of all of its type parameters.
         for uint::range(0, n_tps) |n| { cx.uses[n] |= use_repr; }

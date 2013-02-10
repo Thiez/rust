@@ -780,7 +780,7 @@ pub fn create_function(fcx: fn_ctxt) -> @metadata<subprogram_md> {
     log(debug, cx.sess.codemap.span_to_str(sp));
 
     let (ident, ret_ty, id) = match cx.tcx.items.get(&fcx.id) {
-      ast_map::node_item(item, _) => {
+      &ast_map::node_item(item, _) => {
         match /*bad*/copy item.node {
           ast::item_fn(decl, _, _, _) => {
             (item.ident, decl.output, item.id)
@@ -789,10 +789,10 @@ pub fn create_function(fcx: fn_ctxt) -> @metadata<subprogram_md> {
                                                   bound to non-function")
         }
       }
-      ast_map::node_method(method, _, _) => {
+      &ast_map::node_method(method, _, _) => {
           (method.ident, method.decl.output, method.id)
       }
-      ast_map::node_expr(expr) => {
+      &ast_map::node_expr(expr) => {
         match /*bad*/copy expr.node {
           ast::expr_fn(_, decl, _, _) => {
             ((dbg_cx.names)(~"fn"), decl.output, expr.id)
@@ -805,7 +805,7 @@ pub fn create_function(fcx: fn_ctxt) -> @metadata<subprogram_md> {
                                        expected an expr_fn or fn_block here")
         }
       }
-      ast_map::node_dtor(_, _, did, _) => {
+      &ast_map::node_dtor(_, _, did, _) => {
         ((dbg_cx.names)(~"dtor"), ast_util::dtor_ty(), did.node)
       }
       _ => fcx.ccx.sess.bug(~"create_function: unexpected \

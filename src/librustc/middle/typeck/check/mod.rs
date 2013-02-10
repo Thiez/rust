@@ -1053,7 +1053,7 @@ pub fn impl_self_ty(vcx: &VtableContext,
     let {n_tps, region_param, raw_ty} = if did.crate == ast::local_crate {
         let region_param = tcx.region_paramd_items.find(&did.node);
         match tcx.items.find(&did.node) {
-          Some(ast_map::node_item(@ast::item {
+          Some(&ast_map::node_item(@ast::item {
                   node: ast::item_impl(ref ts, _, st, _),
                   _
               }, _)) => {
@@ -1061,7 +1061,7 @@ pub fn impl_self_ty(vcx: &VtableContext,
              region_param: region_param,
              raw_ty: vcx.ccx.to_ty(rscope::type_rscope(region_param), st)}
           }
-          Some(ast_map::node_item(@ast::item {
+          Some(&ast_map::node_item(@ast::item {
                   node: ast::item_struct(_, ref ts),
                   id: class_id,
                   _
@@ -1859,7 +1859,7 @@ pub fn check_expr_with_unifier(fcx: @mut FnCtxt,
             region_parameterized =
                 tcx.region_paramd_items.find(&class_id.node);
             match tcx.items.find(&class_id.node) {
-                Some(ast_map::node_item(@ast::item {
+                Some(&ast_map::node_item(@ast::item {
                         node: ast::item_struct(_, ref type_parameters),
                         _
                     }, _)) => {
@@ -1943,7 +1943,7 @@ pub fn check_expr_with_unifier(fcx: @mut FnCtxt,
             region_parameterized =
                 tcx.region_paramd_items.find(&enum_id.node);
             match tcx.items.find(&enum_id.node) {
-                Some(ast_map::node_item(@ast::item {
+                Some(&ast_map::node_item(@ast::item {
                         node: ast::item_enum(_, ref type_parameters),
                         _
                     }, _)) => {

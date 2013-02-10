@@ -106,7 +106,7 @@ pub fn check_crate(tcx: ty::ctxt,
             method_static(method_id) => {
                 if method_id.crate == local_crate {
                     match tcx.items.find(&method_id.node) {
-                        Some(node_method(method, impl_id, _)) => {
+                        Some(&node_method(method, impl_id, _)) => {
                             if method.vis == private &&
                                     (impl_id.crate != local_crate ||
                                      !privileged_items
@@ -144,7 +144,7 @@ pub fn check_crate(tcx: ty::ctxt,
             method_super(trait_id, method_num) => {
                 if trait_id.crate == local_crate {
                     match tcx.items.find(&trait_id.node) {
-                        Some(node_item(item, _)) => {
+                        Some(&node_item(item, _)) => {
                             match item.node {
                                 item_trait(_, _, ref methods) => {
                                     if method_num >= (*methods).len() {
