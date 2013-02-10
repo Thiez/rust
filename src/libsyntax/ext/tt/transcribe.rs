@@ -22,7 +22,7 @@ use parse::lexer::TokenAndSpan;
 use core::option;
 use core::vec;
 use std;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 /* FIXME #2811: figure out how to have a uniquely linked stack, and change to
    `~` */
@@ -40,7 +40,7 @@ pub struct TtReader {
     interner: @ident_interner,
     cur: @mut TtFrame,
     /* for MBE-style macro transcription */
-    interpolations: std::oldmap::HashMap<ident, @named_match>,
+    interpolations: LinearMap<ident, @named_match>,
     repeat_idx: ~[uint],
     repeat_len: ~[uint],
     /* cached: */
@@ -53,7 +53,7 @@ pub struct TtReader {
  *  should) be none. */
 pub fn new_tt_reader(sp_diag: span_handler,
                      itr: @ident_interner,
-                     interp: Option<std::oldmap::HashMap<ident,@named_match>>,
+                     interp: Option<LinearMap<ident,@named_match>>,
                      src: ~[ast::token_tree])
                   -> @mut TtReader {
     let r = @mut TtReader {
@@ -67,7 +67,7 @@ pub fn new_tt_reader(sp_diag: span_handler,
             up: option::None
         },
         interpolations: match interp { /* just a convienience */
-            None => std::oldmap::HashMap(),
+            None => LinearMap::new(),
             Some(x) => x
         },
         repeat_idx: ~[],
@@ -122,7 +122,7 @@ pure fn lookup_cur_matched_by_matched(r: @mut TtReader,
 }
 
 fn lookup_cur_matched(r: @mut TtReader, name: ident) -> @named_match {
-    lookup_cur_matched_by_matched(r, r.interpolations.get(&name))
+    lookup_cur_matched_by_matched(r, *r.interpolations.get(&name))
 }
 enum lis {
     lis_unconstrained, lis_constraint(uint, ident), lis_contradiction(~str)

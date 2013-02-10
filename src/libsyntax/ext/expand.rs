@@ -20,9 +20,9 @@ use parse::{parser, parse_expr_from_source_str, new_parser_from_tts};
 
 use core::option;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
-pub fn expand_expr(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
+pub fn expand_expr(exts: LinearMap<~str, SyntaxExtension>, cx: ext_ctxt,
                    e: expr_, s: span, fld: ast_fold,
                    orig: fn@(expr_, span, ast_fold) -> (expr_, span))
                 -> (expr_, span) {
@@ -45,7 +45,7 @@ pub fn expand_expr(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
                     cx.span_fatal(pth.span,
                                   fmt!("macro undefined: '%s'", *extname))
                   }
-                  Some(NormalTT(SyntaxExpanderTT{expander: exp,
+                  Some(&NormalTT(SyntaxExpanderTT{expander: exp,
                                                  span: exp_sp})) => {
                     cx.bt_push(ExpandedFrom({call_site: s,
                                 callie: {name: *extname, span: exp_sp}}));
@@ -87,7 +87,7 @@ pub fn expand_expr(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
 //
 // NB: there is some redundancy between this and expand_item, below, and
 // they might benefit from some amount of semantic and language-UI merger.
-pub fn expand_mod_items(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
+pub fn expand_mod_items(exts: LinearMap<~str, SyntaxExtension>, cx: ext_ctxt,
                         module_: ast::_mod, fld: ast_fold,
                         orig: fn@(ast::_mod, ast_fold) -> ast::_mod)
                      -> ast::_mod {
@@ -105,8 +105,8 @@ pub fn expand_mod_items(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
               ast::meta_list(ref n, _) => (*n)
             };
             match exts.find(&mname) {
-              None | Some(NormalTT(_)) | Some(ItemTT(*)) => items,
-              Some(ItemDecorator(dec_fn)) => {
+              None | Some(&NormalTT(_)) | Some(&ItemTT(*)) => items,
+              Some(&ItemDecorator(dec_fn)) => {
                   cx.bt_push(ExpandedFrom({call_site: attr.span,
                                            callie: {name: copy mname,
                                                     span: None}}));
@@ -123,7 +123,7 @@ pub fn expand_mod_items(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
 
 
 // When we enter a module, record it, for the sake of `module!`
-pub fn expand_item(exts: HashMap<~str, SyntaxExtension>,
+pub fn expand_item(exts: LinearMap<~str, SyntaxExtension>,
                    cx: ext_ctxt, &&it: @ast::item, fld: ast_fold,
                    orig: fn@(&&v: @ast::item, ast_fold) -> Option<@ast::item>)
                 -> Option<@ast::item> {
@@ -149,7 +149,7 @@ pub fn expand_item(exts: HashMap<~str, SyntaxExtension>,
 
 // Support for item-position macro invocations, exactly the same
 // logic as for expression-position macro invocations.
-pub fn expand_item_mac(exts: HashMap<~str, SyntaxExtension>,
+pub fn expand_item_mac(exts: LinearMap<~str, SyntaxExtension>,
                        cx: ext_ctxt, &&it: @ast::item,
                        fld: ast_fold) -> Option<@ast::item> {
 
@@ -165,7 +165,7 @@ pub fn expand_item_mac(exts: HashMap<~str, SyntaxExtension>,
         None => cx.span_fatal(pth.span,
                               fmt!("macro undefined: '%s!'", *extname)),
 
-        Some(NormalTT(ref expand)) => {
+        Some(&NormalTT(ref expand)) => {
             if it.ident != parse::token::special_idents::invalid {
                 cx.span_fatal(pth.span,
                               fmt!("macro %s! expects no ident argument, \
@@ -177,7 +177,7 @@ pub fn expand_item_mac(exts: HashMap<~str, SyntaxExtension>,
                                               span: (*expand).span}}));
             ((*expand).expander)(cx, it.span, tts)
         }
-        Some(ItemTT(ref expand)) => {
+        Some(&ItemTT(ref expand)) => {
             if it.ident == parse::token::special_idents::invalid {
                 cx.span_fatal(pth.span,
                               fmt!("macro %s! expects an ident argument",
@@ -208,7 +208,7 @@ pub fn expand_item_mac(exts: HashMap<~str, SyntaxExtension>,
     return maybe_it;
 }
 
-pub fn expand_stmt(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
+pub fn expand_stmt(exts: LinearMap<~str, SyntaxExtension>, cx: ext_ctxt,
                    && s: stmt_, sp: span, fld: ast_fold,
                    orig: fn@(&&s: stmt_, span, ast_fold) -> (stmt_, span))
                 -> (stmt_, span) {
@@ -228,7 +228,7 @@ pub fn expand_stmt(exts: HashMap<~str, SyntaxExtension>, cx: ext_ctxt,
         None =>
             cx.span_fatal(pth.span, fmt!("macro undefined: '%s'", *extname)),
 
-        Some(NormalTT(
+        Some(&NormalTT(
             SyntaxExpanderTT{expander: exp, span: exp_sp})) => {
             cx.bt_push(ExpandedFrom(
                 {call_site: sp, callie: {name: *extname, span: exp_sp}}));
