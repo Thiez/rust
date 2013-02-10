@@ -21,7 +21,7 @@ use core::char;
 use core::cmp;
 use core::str;
 use core::task;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 #[auto_encode]
 #[auto_decode]
@@ -355,16 +355,16 @@ pub struct ident_interner {
 }
 
 pub impl ident_interner {
-    fn intern(val: @~str) -> ast::ident {
+    fn intern(&mut self, val: @~str) -> ast::ident {
         ast::ident { repr: self.interner.intern(val) }
     }
-    fn gensym(val: @~str) -> ast::ident {
+    fn gensym(&self, val: @~str) -> ast::ident {
         ast::ident { repr: self.interner.gensym(val) }
     }
-    pure fn get(idx: ast::ident) -> @~str {
+    pure fn get(&self, idx: ast::ident) -> @~str {
         self.interner.get(idx.repr)
     }
-    fn len() -> uint {
+    fn len(&self) -> uint {
         self.interner.len()
     }
 }
@@ -453,8 +453,8 @@ pub fn mk_fake_ident_interner() -> @ident_interner {
  * appear as identifiers at all. Reserved keywords are not used anywhere in
  * the language and may not appear as identifiers.
  */
-pub fn keyword_table() -> HashMap<~str, ()> {
-    let keywords = HashMap();
+pub fn keyword_table() -> LinearMap<~str, ()> {
+    let mut keywords = LinearMap::new();
     for temporary_keyword_table().each_key |&word| {
         keywords.insert(word, ());
     }
@@ -468,8 +468,8 @@ pub fn keyword_table() -> HashMap<~str, ()> {
 }
 
 /// Keywords that may be used as identifiers
-pub fn temporary_keyword_table() -> HashMap<~str, ()> {
-    let words = HashMap();
+pub fn temporary_keyword_table() -> LinearMap<~str, ()> {
+    let mut words = LinearMap::new();
     let keys = ~[
         ~"self", ~"static",
     ];
@@ -480,8 +480,8 @@ pub fn temporary_keyword_table() -> HashMap<~str, ()> {
 }
 
 /// Full keywords. May not appear anywhere else.
-pub fn strict_keyword_table() -> HashMap<~str, ()> {
-    let words = HashMap();
+pub fn strict_keyword_table() -> LinearMap<~str, ()> {
+    let mut words = LinearMap::new();
     let keys = ~[
         ~"as", ~"assert",
         ~"break",
@@ -506,8 +506,8 @@ pub fn strict_keyword_table() -> HashMap<~str, ()> {
     words
 }
 
-pub fn reserved_keyword_table() -> HashMap<~str, ()> {
-    let words = HashMap();
+pub fn reserved_keyword_table() -> LinearMap<~str, ()> {
+    let mut words = LinearMap::new();
     let keys = ~[
         ~"be"
     ];

@@ -91,7 +91,7 @@ use core::either;
 use core::result::Result;
 use core::vec::push;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 #[deriving_eq]
 enum restriction {
@@ -204,10 +204,10 @@ pub fn Parser(sess: parse_sess,
         tokens_consumed: 0u,
         restriction: UNRESTRICTED,
         quote_depth: 0u,
-        keywords: token::keyword_table(),
-        strict_keywords: token::strict_keyword_table(),
-        reserved_keywords: token::reserved_keyword_table(),
-        obsolete_set: HashMap(),
+        keywords: ~mut token::keyword_table(),
+        strict_keywords: ~mut token::strict_keyword_table(),
+        reserved_keywords: ~mut token::reserved_keyword_table(),
+        obsolete_set: ~mut LinearMap::new(),
         mod_path_stack: ~[],
     }
 }
@@ -226,12 +226,12 @@ pub struct Parser {
     mut quote_depth: uint, // not (yet) related to the quasiquoter
     reader: reader,
     interner: @token::ident_interner,
-    keywords: HashMap<~str, ()>,
-    strict_keywords: HashMap<~str, ()>,
-    reserved_keywords: HashMap<~str, ()>,
+    keywords: ~mut LinearMap<~str, ()>,
+    strict_keywords: ~mut LinearMap<~str, ()>,
+    reserved_keywords: ~mut LinearMap<~str, ()>,
     /// The set of seen errors about obsolete syntax. Used to suppress
     /// extra detail when the same error is seen twice
-    obsolete_set: HashMap<ObsoleteSyntax, ()>,
+    obsolete_set: ~mut LinearMap<ObsoleteSyntax, ()>,
     /// Used to determine the path to externally loaded source files
     mut mod_path_stack: ~[~str],
 

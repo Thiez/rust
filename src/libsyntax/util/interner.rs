@@ -15,20 +15,21 @@
 use core::prelude::*;
 
 use core::dvec::DVec;
-use std::oldmap::HashMap;
-use std::oldmap;
+use core::hashmap::linear::LinearMap;
 
-pub type hash_interner<T> = {map: HashMap<T, uint>, vect: DVec<T>};
+struct HashInterner<T> {
+    map: ~mut LinearMap<T, uint>,
+    vect: DVec<T>
+}
 
 pub fn mk<T:Eq IterBytes Hash Const Copy>() -> Interner<T> {
-    let m = oldmap::HashMap::<T, uint>();
-    let hi: hash_interner<T> =
-        {map: m, vect: DVec()};
-    move ((move hi) as Interner::<T>)
+    let m: LinearMap<T, uint> = LinearMap::new();
+    let hi = HashInterner {map: ~mut m, vect: DVec() };
+    (hi as Interner::<T>)
 }
 
 pub fn mk_prefill<T:Eq IterBytes Hash Const Copy>(init: &[T]) -> Interner<T> {
-    let rv = mk();
+    let mut rv = mk();
     for init.each() |v| { rv.intern(*v); }
     return rv;
 }
@@ -36,15 +37,22 @@ pub fn mk_prefill<T:Eq IterBytes Hash Const Copy>(init: &[T]) -> Interner<T> {
 
 /* when traits can extend traits, we should extend index<uint,T> to get [] */
 pub trait Interner<T:Eq IterBytes Hash Const Copy> {
-    fn intern(T) -> uint;
-    fn gensym(T) -> uint;
-    pure fn get(uint) -> T;
-    fn len() -> uint;
+    fn intern(&self, T) -> uint;
+    fn gensym(&self, T) -> uint;
+    pure fn get(&self, uint) -> T;
+    fn len(&self) -> uint;
 }
 
-pub impl <T:Eq IterBytes Hash Const Copy> hash_interner<T>: Interner<T> {
-    fn intern(val: T) -> uint {
-        match self.map.find(&val) {
+pub impl <T:Eq IterBytes Hash Const Copy> HashInterner<T>: Interner<T> {
+    fn intern(&self, val: T) -> uint {
+        pure fn find<T:Eq IterBytes Hash Const Copy>(map: &LinearMap<T, uint>,
+                                                val: T) -> Option<uint> {
+            match map.find(&val) {
+                Some(idx) => Some(*idx),
+                None => None
+            }
+        }
+        match find(self.map, val) {
           Some(idx) => return idx,
           None => {
             let new_idx = self.vect.len();
@@ -54,7 +62,8 @@ pub impl <T:Eq IterBytes Hash Const Copy> hash_interner<T>: Interner<T> {
           }
         }
     }
-    fn gensym(val: T) -> uint {
+    
+    fn gensym(&self, val: T) -> uint {
         let new_idx = self.vect.len();
         // leave out of .map to avoid colliding
         self.vect.push(val);
@@ -64,9 +73,9 @@ pub impl <T:Eq IterBytes Hash Const Copy> hash_interner<T>: Interner<T> {
     // this isn't "pure" in the traditional sense, because it can go from
     // failing to returning a value as items are interned. But for typestate,
     // where we first check a pred and then rely on it, ceasing to fail is ok.
-    pure fn get(idx: uint) -> T { self.vect.get_elt(idx) }
+    pure fn get(&self, idx: uint) -> T { self.vect.get_elt(idx) }
 
-    fn len() -> uint { return self.vect.len(); }
+    fn len(&self) -> uint { return self.vect.len(); }
 }
 
 

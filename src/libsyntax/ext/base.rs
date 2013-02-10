@@ -20,7 +20,7 @@ use parse::{parser, token};
 
 use core::io;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 // new-style macro! tt code:
 //
@@ -77,14 +77,14 @@ pub enum SyntaxExtension {
 
 // A temporary hard-coded map of methods for expanding syntax extension
 // AST nodes into full ASTs
-pub fn syntax_expander_table() -> HashMap<~str, SyntaxExtension> {
+pub fn syntax_expander_table() -> LinearMap<~str, SyntaxExtension> {
     fn builtin_normal_tt(f: SyntaxExpanderTTFun) -> SyntaxExtension {
         NormalTT(SyntaxExpanderTT{expander: f, span: None})
     }
     fn builtin_item_tt(f: SyntaxExpanderTTItemFun) -> SyntaxExtension {
         ItemTT(SyntaxExpanderTTItem{expander: f, span: None})
     }
-    let syntax_expanders = HashMap();
+    let mut syntax_expanders = LinearMap::new();
     syntax_expanders.insert(~"macro_rules",
                             builtin_item_tt(
                                 ext::tt::macro_rules::add_new_extension));

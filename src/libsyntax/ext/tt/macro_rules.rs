@@ -26,7 +26,7 @@ use parse::token::{FAT_ARROW, SEMI, LBRACE, RBRACE, nt_matchers, nt_tt};
 use print;
 
 use core::io;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 pub fn add_new_extension(cx: ext_ctxt, sp: span, name: ident,
                          arg: ~[ast::token_tree]) -> base::MacResult {
@@ -59,11 +59,11 @@ pub fn add_new_extension(cx: ext_ctxt, sp: span, name: ident,
                                      arg_reader as reader, argument_gram);
 
     // Extract the arguments:
-    let lhses:~[@named_match] = match argument_map.get(&lhs_nm) {
+    let lhses:~[@named_match] = match *argument_map.get(&lhs_nm) {
       @matched_seq(s, _) => s,
       _ => cx.span_bug(sp, ~"wrong-structured lhs")
     };
-    let rhses:~[@named_match] = match argument_map.get(&rhs_nm) {
+    let rhses:~[@named_match] = match *argument_map.get(&rhs_nm) {
       @matched_seq(s, _) => s,
       _ => cx.span_bug(sp, ~"wrong-structured rhs")
     };
