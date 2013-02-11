@@ -134,9 +134,9 @@ pub mod lib {
 }
 
 use result::{Ok, Err};
+use hashmap::linear::LinearMap;
 use io::ReaderUtil;
 use std::getopts;
-use std::oldmap::HashMap;
 use getopts::{opt_present};
 use getopts::groups;
 use syntax::codemap;
@@ -186,8 +186,8 @@ Available lint options:
                      padded(max_key, ~"name"), ~"default", ~"meaning"));
     io::println(fmt!("    %s  %7.7s  %s\n",
                      padded(max_key, ~"----"), ~"-------", ~"-------"));
-    for lint_dict.each |&k, &v| {
-        let k = str::replace(k, ~"_", ~"-");
+    for lint_dict.each |&(k, v)| {
+        let k = str::replace(*k, ~"_", ~"-");
         io::println(fmt!("    %s  %7.7s  %s",
                          padded(max_key, k),
                          match v.default {

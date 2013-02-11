@@ -185,7 +185,7 @@ pub fn visit_expr(expr: @ast::expr, &&rcx: @mut Rcx, v: rvt) {
 
     for rcx.fcx.inh.adjustments.find(&expr.id).each |adjustment| {
         for adjustment.autoref.each |autoref| {
-            guarantor::for_autoref(rcx, expr, *adjustment, autoref);
+            guarantor::for_autoref(rcx, expr, **adjustment, autoref);
         }
     }
 
@@ -329,7 +329,7 @@ pub fn constrain_auto_ref(rcx: @mut Rcx, expr: @ast::expr) {
 
     let adjustment = rcx.fcx.inh.adjustments.find(&expr.id);
     let region = match adjustment {
-        Some(@ty::AutoAdjustment { autoref: Some(ref auto_ref), _ }) => {
+        Some(&@ty::AutoAdjustment { autoref: Some(ref auto_ref), _ }) => {
             auto_ref.region
         },
         _ => { return; }

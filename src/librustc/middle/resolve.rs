@@ -23,6 +23,7 @@ use middle::pat_util::{pat_bindings};
 use core::cmp;
 use core::str;
 use core::vec;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::{RegionTyParamBound, TraitTyParamBound, _mod, add, arm};
 use syntax::ast::{binding_mode, bitand, bitor, bitxor, blk};
 use syntax::ast::{bind_infer, bind_by_ref, bind_by_copy};
@@ -79,11 +80,10 @@ use str::{connect, split_str};
 use vec::pop;
 
 use std::list::{Cons, List, Nil};
-use std::oldmap::HashMap;
 use str_eq = str::eq;
 
 // Definition mapping
-pub type DefMap = HashMap<node_id,def>;
+pub type DefMap = @mut LinearMap<node_id,def>;
 
 pub struct binding_info {
     span: span,
@@ -91,7 +91,7 @@ pub struct binding_info {
 }
 
 // Map from the name in a pattern to its binding mode.
-pub type BindingMap = HashMap<ident,binding_info>;
+pub type BindingMap = @mut LinearMap<ident,binding_info>;
 
 // Implementation resolution
 //
@@ -108,11 +108,11 @@ pub type MethodInfo = {
 pub type Impl = { did: def_id, ident: ident, methods: ~[@MethodInfo] };
 
 // Trait method resolution
-pub type TraitMap = @HashMap<node_id,@DVec<def_id>>;
+pub type TraitMap = @mut LinearMap<node_id,@DVec<def_id>>;
 
 // This is the replacement export map. It maps a module to all of the exports
 // within.
-pub type ExportMap2 = HashMap<node_id, ~[Export2]>;
+pub type ExportMap2 = @mut LinearMap<node_id, ~[Export2]>;
 
 pub struct Export2 {
     name: ~str,         // The name of the target.
@@ -328,13 +328,13 @@ pub fn namespace_for_duplicate_checking_mode(mode: DuplicateCheckingMode)
 
 /// One local scope.
 pub struct Rib {
-    bindings: HashMap<ident,def_like>,
+    bindings: @mut LinearMap<ident,def_like>,
     kind: RibKind,
 }
 
 pub fn Rib(kind: RibKind) -> Rib {
     Rib {
-        bindings: HashMap(),
+        bindings: @mut LinearMap::new(),
         kind: kind
     }
 }
@@ -448,7 +448,7 @@ pub struct Module {
     mut def_id: Option<def_id>,
     kind: ModuleKind,
 
-    children: HashMap<ident,@mut NameBindings>,
+    children: @mut LinearMap<ident,@mut NameBindings>,
     imports: DVec<@ImportDirective>,
 
     // The anonymous children of this node. Anonymous children are pseudo-
@@ -466,7 +466,7 @@ pub struct Module {
     // There will be an anonymous module created around `g` with the ID of the
     // entry block for `f`.
 
-    anonymous_children: HashMap<node_id,@Module>,
+    anonymous_children: @mut LinearMap<node_id,@Module>,
 
     // XXX: This is about to be reworked so that exports are on individual
     // items, not names.
@@ -474,10 +474,10 @@ pub struct Module {
     // The ident is the name of the exported item, while the node ID is the
     // ID of the export path.
 
-    exported_names: HashMap<ident,node_id>,
+    exported_names: @mut LinearMap<ident,node_id>,
 
     // The status of resolving each import in this module.
-    import_resolutions: HashMap<ident,@mut ImportResolution>,
+    import_resolutions: @mut LinearMap<ident,@mut ImportResolution>,
 
     // The number of unresolved globs that this module exports.
     mut glob_count: uint,
@@ -494,11 +494,11 @@ pub fn Module(parent_link: ParentLink,
         parent_link: parent_link,
         def_id: def_id,
         kind: kind,
-        children: HashMap(),
+        children: @mut LinearMap::new(),
         imports: DVec(),
-        anonymous_children: HashMap(),
-        exported_names: HashMap(),
-        import_resolutions: HashMap(),
+        anonymous_children: @mut LinearMap::new(),
+        exported_names: @mut LinearMap::new(),
+        import_resolutions: @mut LinearMap::new(),
         glob_count: 0,
         resolved_import_count: 0
     }
@@ -704,7 +704,7 @@ pub fn NameBindings() -> NameBindings {
 
 /// Interns the names of the primitive types.
 pub struct PrimitiveTypeTable {
-    primitive_types: HashMap<ident,prim_ty>,
+    primitive_types: @mut LinearMap<ident,prim_ty>,
 }
 
 pub impl PrimitiveTypeTable {
@@ -717,7 +717,7 @@ pub impl PrimitiveTypeTable {
 
 pub fn PrimitiveTypeTable(intr: @ident_interner) -> PrimitiveTypeTable {
     let table = PrimitiveTypeTable {
-        primitive_types: HashMap()
+        primitive_types: @mut LinearMap::new()
     };
 
     table.intern(intr, @~"bool",    ty_bool);
@@ -774,8 +774,8 @@ pub fn Resolver(session: Session,
 
         unused_import_lint_level: unused_import_lint_level(session),
 
-        trait_info: HashMap(),
-        structs: HashMap(),
+        trait_info: @mut LinearMap::new(),
+        structs: @mut LinearMap::new(),
 
         unresolved_imports: 0,
 
@@ -798,9 +798,9 @@ pub fn Resolver(session: Session,
         attr_main_fn: None,
         main_fns: ~[],
 
-        def_map: HashMap(),
-        export_map2: HashMap(),
-        trait_map: @HashMap(),
+        def_map: @mut LinearMap::new(),
+        export_map2: @mut LinearMap::new(),
+        trait_map: @mut LinearMap::new(),
 
         intr: session.intr()
     };
@@ -820,8 +820,8 @@ pub struct Resolver {
 
     unused_import_lint_level: level,
 
-    trait_info: HashMap<def_id,@HashMap<ident,()>>,
-    structs: HashMap<def_id,()>,
+    trait_info: @mut LinearMap<def_id,@mut LinearMap<ident,()>>,
+    structs: @mut LinearMap<def_id,()>,
 
     // The number of imports that are currently unresolved.
     mut unresolved_imports: uint,
@@ -864,7 +864,7 @@ pub struct Resolver {
 
     def_map: DefMap,
     export_map2: ExportMap2,
-    trait_map: TraitMap,
+    trait_map: TraitMap
 }
 
 pub impl Resolver {
@@ -1022,7 +1022,7 @@ pub impl Resolver {
                                   self.session.str_of(name)));
                     }
                 }
-                return (child, new_parent);
+                return (*child, new_parent);
             }
         }
     }
@@ -1299,7 +1299,7 @@ pub impl Resolver {
                 }
 
                 // Add the names of all the methods to the trait info.
-                let method_names = @HashMap();
+                let method_names = @mut LinearMap::new();
                 for (*methods).each |method| {
                     let ty_m = trait_method_to_ty_method(*method);
 
@@ -1554,7 +1554,7 @@ pub impl Resolver {
     }
 
     fn handle_external_def(def: def,
-                           modules: HashMap<def_id, @Module>,
+                           modules: @mut LinearMap<def_id, @Module>,
                            child_name_bindings: @mut NameBindings,
                            final_ident: ~str,
                            ident: ident,
@@ -1601,7 +1601,7 @@ pub impl Resolver {
                         die!(~"can't happen");
                       }
                       ModuleParentLink(parent_module, ident) => {
-                        let name_bindings = parent_module.children.get(
+                        let name_bindings = *parent_module.children.get(
                             &ident);
                         resolution.type_target =
                             Some(Target(parent_module, name_bindings));
@@ -1635,7 +1635,7 @@ pub impl Resolver {
                 // Nothing to do.
               }
               Some(method_names) => {
-                let interned_method_names = @HashMap();
+                let interned_method_names = @mut LinearMap::new();
                 for method_names.each |method_data| {
                     let (method_name, self_ty) = *method_data;
                     debug!("(building reduced graph for \
@@ -1675,7 +1675,7 @@ pub impl Resolver {
      * crate.
      */
     fn build_reduced_graph_for_external_crate(root: @Module) {
-        let modules = HashMap();
+        let modules = @mut LinearMap::new();
 
         // Create all the items reachable by paths.
         for each_path(self.session.cstore, root.def_id.get().crate)
@@ -2146,13 +2146,13 @@ pub impl Resolver {
                 // Continue.
             }
             Some(child_name_bindings) => {
-                if (*child_name_bindings).defined_in_namespace(ValueNS) {
+                if (child_name_bindings).defined_in_namespace(ValueNS) {
                     value_result = BoundResult(containing_module,
-                                               child_name_bindings);
+                                               *child_name_bindings);
                 }
-                if (*child_name_bindings).defined_in_namespace(TypeNS) {
+                if (child_name_bindings).defined_in_namespace(TypeNS) {
                     type_result = BoundResult(containing_module,
-                                              child_name_bindings);
+                                              *child_name_bindings);
                 }
             }
         }
@@ -2222,11 +2222,11 @@ pub impl Resolver {
                         // The name is an import which has been fully
                         // resolved. We can, therefore, just follow it.
                         if value_result.is_unknown() {
-                            value_result = get_binding(import_resolution,
+                            value_result = get_binding(*import_resolution,
                                                        ValueNS);
                         }
                         if type_result.is_unknown() {
-                            type_result = get_binding(import_resolution,
+                            type_result = get_binding(*import_resolution,
                                                       TypeNS);
                         }
                     }
@@ -2332,9 +2332,9 @@ pub impl Resolver {
                 // Continue.
             }
             Some(child_name_bindings) => {
-                if (*child_name_bindings).defined_in_namespace(TypeNS) {
+                if (child_name_bindings).defined_in_namespace(TypeNS) {
                     module_result = BoundResult(containing_module,
-                                                child_name_bindings);
+                                                *child_name_bindings);
                 }
             }
         }
@@ -2462,7 +2462,7 @@ pub impl Resolver {
 
         // Add all resolved imports from the containing module.
         for containing_module.import_resolutions.each
-                |&ident, &target_import_resolution| {
+                |&(ident, target_import_resolution)| {
 
             debug!("(resolving glob import) writing module resolution \
                     %? into `%s`",
@@ -2470,7 +2470,7 @@ pub impl Resolver {
                    self.module_to_str(module_));
 
             // Here we merge two import resolutions.
-            match module_.import_resolutions.find(&ident) {
+            match module_.import_resolutions.find(ident) {
                 None => {
                     // Simple: just copy the old import resolution.
                     let new_import_resolution =
@@ -2483,7 +2483,7 @@ pub impl Resolver {
                         copy target_import_resolution.type_target;
 
                     module_.import_resolutions.insert
-                        (ident, new_import_resolution);
+                        (*ident, new_import_resolution);
                 }
                 Some(dest_import_resolution) => {
                     // Merge the two import resolutions at a finer-grained
@@ -2512,40 +2512,40 @@ pub impl Resolver {
         }
 
         // Add all children from the containing module.
-        for containing_module.children.each |&ident, &name_bindings| {
+        for containing_module.children.each |&(ident, name_bindings)| {
             let mut dest_import_resolution;
-            match module_.import_resolutions.find(&ident) {
+            match module_.import_resolutions.find(ident) {
                 None => {
                     // Create a new import resolution from this child.
                     dest_import_resolution = @mut ImportResolution(privacy,
                                                                    span,
                                                                    state);
                     module_.import_resolutions.insert
-                        (ident, dest_import_resolution);
+                        (*ident, dest_import_resolution);
                 }
                 Some(existing_import_resolution) => {
-                    dest_import_resolution = existing_import_resolution;
+                    dest_import_resolution = *existing_import_resolution;
                 }
             }
 
 
             debug!("(resolving glob import) writing resolution `%s` in `%s` \
                     to `%s`, privacy=%?",
-                   self.session.str_of(ident),
+                   self.session.str_of(*ident),
                    self.module_to_str(containing_module),
                    self.module_to_str(module_),
                    dest_import_resolution.privacy);
 
             // Merge the child item into the import resolution.
-            if (*name_bindings).defined_in_namespace(ValueNS) {
+            if name_bindings.defined_in_namespace(ValueNS) {
                 debug!("(resolving glob import) ... for value target");
                 dest_import_resolution.value_target =
-                    Some(Target(containing_module, name_bindings));
+                    Some(Target(containing_module, *name_bindings));
             }
-            if (*name_bindings).defined_in_namespace(TypeNS) {
+            if name_bindings.defined_in_namespace(TypeNS) {
                 debug!("(resolving glob import) ... for type target");
                 dest_import_resolution.type_target =
-                    Some(Target(containing_module, name_bindings));
+                    Some(Target(containing_module, *name_bindings));
             }
         }
 
@@ -2722,8 +2722,8 @@ pub impl Resolver {
 
         match module_.children.find(&name) {
             Some(name_bindings)
-                    if (*name_bindings).defined_in_namespace(namespace) => {
-                return Success(Target(module_, name_bindings));
+                    if name_bindings.defined_in_namespace(namespace) => {
+                return Success(Target(module_, *name_bindings));
             }
             Some(_) | None => { /* Not found; continue. */ }
         }
@@ -2959,10 +2959,10 @@ pub impl Resolver {
         // First, check the direct children of the module.
         match module_.children.find(&name) {
             Some(name_bindings)
-                    if (*name_bindings).defined_in_namespace(namespace) => {
+                    if name_bindings.defined_in_namespace(namespace) => {
 
                 debug!("(resolving name in module) found node as child");
-                return Success(Target(module_, name_bindings));
+                return Success(Target(module_, *name_bindings));
             }
             Some(_) | None => {
                 // Continue.
@@ -3297,7 +3297,7 @@ pub impl Resolver {
     }
 
     fn add_exports_for_module(exports2: &mut ~[Export2], module_: @Module) {
-        for module_.children.each |ident, namebindings| {
+        for module_.children.each |&(ident, namebindings)| {
             debug!("(computing exports) maybe export '%s'",
                    self.session.str_of(*ident));
             self.add_exports_of_namebindings(&mut *exports2,
@@ -3312,7 +3312,7 @@ pub impl Resolver {
                                              false);
         }
 
-        for module_.import_resolutions.each |ident, importresolution| {
+        for module_.import_resolutions.each |&(ident, importresolution)| {
             if importresolution.privacy != Public {
                 debug!("(computing exports) not reexporting private `%s`",
                        self.session.str_of(*ident));
@@ -3439,7 +3439,8 @@ pub impl Resolver {
                   // If the def is a ty param, and came from the parent
                   // item, it's ok
                   match def {
-                    def_ty_param(did, _) if self.def_map.find(&did.node)
+                    def_ty_param(did, _)
+                        if self.def_map.find(&did.node).map(|t|{**t})
                       == Some(def_typaram_binder(item_id)) => {
                       // ok
                     }
@@ -3513,7 +3514,7 @@ pub impl Resolver {
             let rib = (*ribs).get_elt(i);
             match rib.bindings.find(&name) {
                 Some(def_like) => {
-                    return self.upvarify(ribs, i, def_like, span,
+                    return self.upvarify(ribs, i, *def_like, span,
                                       allow_capturing_self);
                 }
                 None => {
@@ -4086,7 +4087,7 @@ pub impl Resolver {
     }
 
     fn binding_mode_map(pat: @pat) -> BindingMap {
-        let result = HashMap();
+        let result = @mut LinearMap::new();
         do pat_bindings(self.def_map, pat) |binding_mode, _id, sp, path| {
             let ident = path_to_ident(path);
             result.insert(ident,
@@ -4102,34 +4103,34 @@ pub impl Resolver {
         for arm.pats.eachi() |i, p| {
             let map_i = self.binding_mode_map(*p);
 
-            for map_0.each |&key, &binding_0| {
-                match map_i.find(&key) {
+            for map_0.each |&(key, binding_0)| {
+                match map_i.find(key) {
                   None => {
                     self.session.span_err(
                         p.span,
                         fmt!("variable `%s` from pattern #1 is \
                                   not bound in pattern #%u",
-                             self.session.str_of(key), i + 1));
+                             self.session.str_of(*key), i + 1));
                   }
-                  Some(binding_i) => {
+                  Some(&binding_i) => {
                     if binding_0.binding_mode != binding_i.binding_mode {
                         self.session.span_err(
                             binding_i.span,
                             fmt!("variable `%s` is bound with different \
                                       mode in pattern #%u than in pattern #1",
-                                 self.session.str_of(key), i + 1));
+                                 self.session.str_of(*key), i + 1));
                     }
                   }
                 }
             }
 
-            for map_i.each |&key, &binding| {
-                if !map_0.contains_key(&key) {
+            for map_i.each |&(key, binding)| {
+                if !map_0.contains_key(key) {
                     self.session.span_err(
                         binding.span,
                         fmt!("variable `%s` from pattern #%u is \
                                   not bound in pattern #1",
-                             self.session.str_of(key), i + 1));
+                             self.session.str_of(*key), i + 1));
                 }
             }
         }
@@ -4138,7 +4139,7 @@ pub impl Resolver {
     fn resolve_arm(arm: arm, visitor: ResolveVisitor) {
         (*self.value_ribs).push(@Rib(NormalRibKind));
 
-        let bindings_list = HashMap();
+        let bindings_list = @mut LinearMap::new();
         for arm.pats.each |pattern| {
             self.resolve_pattern(*pattern, RefutableMode, Immutable,
                                  Some(bindings_list), visitor);
@@ -4165,7 +4166,7 @@ pub impl Resolver {
             Some(anonymous_module) => {
                 debug!("(resolving block) found anonymous module, moving \
                         down");
-                self.current_module = anonymous_module;
+                self.current_module = *anonymous_module;
             }
         }
 
@@ -4197,7 +4198,7 @@ pub impl Resolver {
                             .primitive_types
                             .find(&name) {
 
-                        Some(primitive_type) => {
+                        Some(&primitive_type) => {
                             result_def =
                                 Some(def_prim_ty(primitive_type));
                         }
@@ -4257,7 +4258,7 @@ pub impl Resolver {
                        mutability: Mutability,
                        // Maps idents to the node ID for the (outermost)
                        // pattern that binds them
-                       bindings_list: Option<HashMap<ident,node_id>>,
+                       bindings_list: Option<@mut LinearMap<ident,node_id>>,
                        visitor: ResolveVisitor) {
 
         let pat_id = pattern.id;
@@ -4360,8 +4361,8 @@ pub impl Resolver {
                                                              dl_def(def));
                                     bindings_list.insert(ident, pat_id);
                                 }
-                                Some(b) => {
-                                  if b.find(&ident) == Some(pat_id) {
+                                Some(ref b) => {
+                                  if b.find(&ident) == Some(&pat_id) {
                                       // Then this is a duplicate variable
                                       // in the same disjunct, which is an
                                       // error
@@ -5311,9 +5312,9 @@ pub impl Resolver {
         }
 
         debug!("Import resolutions:");
-        for module_.import_resolutions.each |&name, &import_resolution| {
+        for module_.import_resolutions.each |&(name, import_resolution)| {
             let mut value_repr;
-            match (*import_resolution).target_for_namespace(ValueNS) {
+            match import_resolution.target_for_namespace(ValueNS) {
                 None => { value_repr = ~""; }
                 Some(_) => {
                     value_repr = ~" value:?";
@@ -5322,7 +5323,7 @@ pub impl Resolver {
             }
 
             let mut type_repr;
-            match (*import_resolution).target_for_namespace(TypeNS) {
+            match import_resolution.target_for_namespace(TypeNS) {
                 None => { type_repr = ~""; }
                 Some(_) => {
                     type_repr = ~" type:?";
@@ -5330,7 +5331,7 @@ pub impl Resolver {
                 }
             }
 
-            debug!("* %s:%s%s", self.session.str_of(name),
+            debug!("* %s:%s%s", self.session.str_of(*name),
                    value_repr, type_repr);
         }
     }

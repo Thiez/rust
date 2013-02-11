@@ -35,7 +35,7 @@ use core::cmp;
 use core::dvec::DVec;
 use core::uint;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::{m_const, m_imm, m_mutbl};
 use syntax::ast;
 use syntax::ast_util;
@@ -47,7 +47,7 @@ struct CheckLoanCtxt {
     bccx: @BorrowckCtxt,
     req_maps: req_maps,
 
-    reported: HashMap<ast::node_id, ()>,
+    reported: @mut LinearMap<ast::node_id, ()>,
 
     declared_purity: @mut ast::purity,
     fn_args: @mut @~[ast::node_id]
@@ -71,7 +71,7 @@ pub fn check_loans(bccx: @BorrowckCtxt,
     let clcx = @mut CheckLoanCtxt {
         bccx: bccx,
         req_maps: req_maps,
-        reported: HashMap(),
+        reported: @mut LinearMap::new(),
         declared_purity: @mut ast::impure_fn,
         fn_args: @mut @~[]
     };
@@ -130,12 +130,12 @@ impl CheckLoanCtxt {
         loop {
             match pure_map.find(&scope_id) {
               None => (),
-              Some(ref e) => return Some(pc_cmt((*e)))
+              Some(e) => return Some(pc_cmt((*e)))
             }
 
             match region_map.find(&scope_id) {
               None => return default_purity,
-              Some(next_scope_id) => scope_id = next_scope_id
+              Some(next_scope_id) => scope_id = *next_scope_id
             }
         }
     }
@@ -156,7 +156,7 @@ impl CheckLoanCtxt {
 
             match region_map.find(&scope_id) {
               None => return,
-              Some(next_scope_id) => scope_id = next_scope_id,
+              Some(next_scope_id) => scope_id = *next_scope_id,
             }
         }
     }
@@ -205,7 +205,7 @@ impl CheckLoanCtxt {
           Some(expr) => {
             match expr.node {
               ast::expr_path(_) if pc == pc_pure_fn => {
-                let def = self.tcx().def_map.get(&expr.id);
+                let def = *self.tcx().def_map.get(&expr.id);
                 let did = ast_util::def_id_of_def(def);
                 let is_fn_arg =
                     did.crate == ast::local_crate &&
@@ -257,7 +257,7 @@ impl CheckLoanCtxt {
     fn is_allowed_pure_arg(@mut self, expr: @ast::expr) -> bool {
         return match expr.node {
           ast::expr_path(_) => {
-            let def = self.tcx().def_map.get(&expr.id);
+            let def = *self.tcx().def_map.get(&expr.id);
             let did = ast_util::def_id_of_def(def);
             did.crate == ast::local_crate &&
                 (*self.fn_args).contains(&(did.node))
@@ -279,7 +279,7 @@ impl CheckLoanCtxt {
 
         debug!("new_loans has length %?", new_loans.len());
 
-        let par_scope_id = self.tcx().region_map.get(&scope_id);
+        let par_scope_id = *self.tcx().region_map.get(&scope_id);
         for self.walk_loans(par_scope_id) |old_loan| {
             debug!("old_loan=%?", self.bccx.loan_to_repr(old_loan));
 
@@ -337,7 +337,7 @@ impl CheckLoanCtxt {
         // auto-ref'd parameters in overloaded operators as rvalues.
         let cmt = match self.bccx.tcx.adjustments.find(&ex.id) {
             None => self.bccx.cat_expr_unadjusted(ex),
-            Some(adj) => self.bccx.cat_expr_autoderefd(ex, adj)
+            Some(adj) => self.bccx.cat_expr_autoderefd(ex, *adj)
         };
 
         debug!("check_assignment(cmt=%s)",

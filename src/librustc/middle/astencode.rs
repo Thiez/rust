@@ -27,11 +27,11 @@ use middle;
 use util::ppaux::ty_to_str;
 
 use core::{dvec, io, option, vec};
+use core::hashmap::linear::LinearMap;
 use std::ebml::reader::get_doc;
 use std::ebml::reader;
 use std::ebml::writer::Encoder;
 use std::ebml;
-use std::oldmap::HashMap;
 use std::prettyprint;
 use std::serialize;
 use std::serialize::{Encodable, EncoderHelpers, DecoderHelpers};
@@ -137,7 +137,7 @@ pub fn decode_inlined_item(cdata: cstore::crate_metadata,
                ast_map::path_to_str(path, tcx.sess.parse_sess.interner),
                tcx.sess.str_of(ii.ident()));
         ast_map::map_decoded_item(tcx.sess.diagnostic(),
-                                  dcx.tcx.items, path, ii);
+                                  *dcx.tcx.items, path, ii);
         decode_side_tables(xcx, ast_doc);
         match ii {
           ast::ii_item(i) => {
@@ -859,7 +859,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_node_type_subst) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                ebml_w.emit_tys(ecx, /*bad*/copy *tys)
+                ebml_w.emit_tys(ecx, /*bad*/copy **tys)
             }
         }
     }
@@ -868,7 +868,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_freevars) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                do ebml_w.emit_from_vec(**fv) |fv_entry| {
+                do ebml_w.emit_from_vec(***fv) |fv_entry| {
                     encode_freevar_entry(ebml_w, *fv_entry)
                 }
             }
@@ -880,7 +880,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_tcache) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                ebml_w.emit_tpbt(ecx, *tpbt);
+                ebml_w.emit_tpbt(ecx, **tpbt);
             }
         }
     }
@@ -889,7 +889,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_param_bounds) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                ebml_w.emit_bounds(ecx, *pbs)
+                ebml_w.emit_bounds(ecx, **pbs)
             }
         }
     }
@@ -929,7 +929,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_method_map) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                encode_method_map_entry(ecx, ebml_w, *mme)
+                encode_method_map_entry(ecx, ebml_w, **mme)
             }
         }
     }
@@ -938,7 +938,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_vtable_map) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                encode_vtable_res(ecx, ebml_w, *dr);
+                encode_vtable_res(ecx, ebml_w, **dr);
             }
         }
     }
@@ -968,7 +968,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
         do ebml_w.tag(c::tag_table_capture_map) {
             ebml_w.id(id);
             do ebml_w.tag(c::tag_table_val) {
-                do ebml_w.emit_from_vec(*cap_vars) |cap_var| {
+                do ebml_w.emit_from_vec(**cap_vars) |cap_var| {
                     cap_var.encode(&ebml_w);
                 }
             }

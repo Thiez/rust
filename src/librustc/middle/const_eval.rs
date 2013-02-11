@@ -79,7 +79,7 @@ pub fn classify(e: @expr,
              -> constness {
     let did = ast_util::local_def(e.id);
     match tcx.ccache.find(&did) {
-      Some(x) => x,
+      Some(x) => *x,
       None => {
         let cn =
             match /*bad*/copy e.node {
@@ -171,7 +171,7 @@ pub fn classify(e: @expr,
 
 pub fn lookup_const(tcx: ty::ctxt, e: @expr) -> Option<@expr> {
     match tcx.def_map.find(&e.id) {
-        Some(ast::def_const(def_id)) => lookup_const_by_id(tcx, def_id),
+        Some(&ast::def_const(def_id)) => lookup_const_by_id(tcx, def_id),
         _ => None
     }
 }

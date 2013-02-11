@@ -24,7 +24,7 @@ use middle::trans::meth;
 use middle::trans::type_of::*;
 use util::ppaux::ty_to_str;
 
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::def_id;
 use syntax::ast;
 
@@ -332,7 +332,7 @@ pub fn emit_calls_to_trait_visit_ty(bcx: block,
     use syntax::parse::token::special_idents::tydesc;
     let final = sub_block(bcx, ~"final");
     assert bcx.ccx().tcx.intrinsic_defs.contains_key(&tydesc);
-    let (_, tydesc_ty) = bcx.ccx().tcx.intrinsic_defs.get(&tydesc);
+    let &(_, tydesc_ty) = bcx.ccx().tcx.intrinsic_defs.get(&tydesc);
     let tydesc_ty = type_of::type_of(bcx.ccx(), tydesc_ty);
     let mut r = Reflector {
         visitor_val: visitor_val,

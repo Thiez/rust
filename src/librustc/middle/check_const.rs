@@ -18,14 +18,14 @@ use util::ppaux;
 
 use core::dvec::DVec;
 use core::option;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::*;
 use syntax::codemap;
 use syntax::{visit, ast_util, ast_map};
 
 pub fn check_crate(sess: Session,
                    crate: @crate,
-                   ast_map: ast_map::map,
+                   ast_map: @mut ast_map::map,
                    def_map: resolve::DefMap,
                    method_map: typeck::method_map,
                    tcx: ty::ctxt) {
@@ -40,7 +40,7 @@ pub fn check_crate(sess: Session,
 }
 
 pub fn check_item(sess: Session,
-                  ast_map: ast_map::map,
+                  ast_map: @mut ast_map::map,
                   def_map: resolve::DefMap,
                   it: @item,
                   &&_is_const: bool,
@@ -127,10 +127,10 @@ pub fn check_expr(sess: Session,
                               items without type parameters");
             }
             match def_map.find(&e.id) {
-              Some(def_const(def_id)) |
-                Some(def_fn(def_id, _)) |
-                Some(def_variant(_, def_id)) |
-                Some(def_struct(def_id)) => {
+              Some(&def_const(def_id)) |
+                Some(&def_fn(def_id, _)) |
+                Some(&def_variant(_, def_id)) |
+                Some(&def_struct(def_id)) => {
                 if !ast_util::is_local(def_id) {
                     sess.span_err(
                         e.span, ~"paths in constants may only refer to \
@@ -139,7 +139,7 @@ pub fn check_expr(sess: Session,
                 }
               }
               Some(def) => {
-                debug!("(checking const) found bad def: %?", def);
+                debug!("(checking const) found bad def: %?", *def);
                 sess.span_err(
                     e.span,
                     fmt!("paths in constants may only refer to \
@@ -152,8 +152,8 @@ pub fn check_expr(sess: Session,
           }
           expr_call(callee, _, NoSugar) => {
             match def_map.find(&callee.id) {
-                Some(def_struct(*)) => {}    // OK.
-                Some(def_variant(*)) => {}    // OK.
+                Some(&def_struct(*)) => {}    // OK.
+                Some(&def_variant(*)) => {}    // OK.
                 _ => {
                     sess.span_err(
                         e.span,
@@ -209,13 +209,13 @@ pub fn check_expr(sess: Session,
 // Make sure a const item doesn't recursively refer to itself
 // FIXME: Should use the dependency graph when it's available (#1356)
 pub fn check_item_recursion(sess: Session,
-                            ast_map: ast_map::map,
+                            ast_map: @mut ast_map::map,
                             def_map: resolve::DefMap,
                             it: @item) {
     type env = {
         root_it: @item,
         sess: Session,
-        ast_map: ast_map::map,
+        ast_map: @mut ast_map::map,
         def_map: resolve::DefMap,
         idstack: @DVec<node_id>,
     };
@@ -248,7 +248,7 @@ pub fn check_item_recursion(sess: Session,
         match e.node {
           expr_path(*) => {
             match env.def_map.find(&e.id) {
-              Some(def_const(def_id)) => {
+              Some(&def_const(def_id)) => {
                 match env.ast_map.get(&def_id.node) {
                   &ast_map::node_item(it, _) => {
                     (v.visit_item)(it, env, v);

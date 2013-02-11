@@ -28,7 +28,7 @@ use middle::trans::type_of::*;
 use util::ppaux::ty_to_str;
 
 use core::libc::c_uint;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast;
 use syntax::ast_map::{path, path_mod, path_name};
 use syntax::ast_util;
@@ -415,7 +415,7 @@ pub fn trans_expr_fn(bcx: block,
 
     let Result {bcx: bcx, val: closure} = match sigil {
         ast::BorrowedSigil | ast::ManagedSigil | ast::OwnedSigil => {
-            let cap_vars = ccx.maps.capture_map.get(&user_id);
+            let cap_vars = *ccx.maps.capture_map.get(&user_id);
             let ret_handle = match is_loop_body {Some(x) => x,
                                                  None => None};
             let {llbox, cdata_ty, bcx} = build_closure(bcx, cap_vars, sigil,

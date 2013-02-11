@@ -22,14 +22,14 @@ use middle::ty;
 use middle::typeck;
 
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::*;
 use syntax::ast_util::def_id_of_def;
 use syntax::attr;
 use syntax::print::pprust::expr_to_str;
 use syntax::{visit, ast_util, ast_map};
 
-pub type map = HashMap<node_id, ()>;
+pub type map = @mut LinearMap<node_id, ()>;
 
 struct ctx {
     exp_map2: resolve::ExportMap2,
@@ -40,7 +40,7 @@ struct ctx {
 
 pub fn find_reachable(crate_mod: _mod, exp_map2: resolve::ExportMap2,
                       tcx: ty::ctxt, method_map: typeck::method_map) -> map {
-    let rmap = HashMap();
+    let rmap = @mut LinearMap::new();
     let cx = ctx {
         exp_map2: exp_map2,
         tcx: tcx,
@@ -153,8 +153,8 @@ fn traverse_ty(ty: @Ty, cx: ctx, v: visit::vt<ctx>) {
         match cx.tcx.def_map.find(&p_id) {
           // Kind of a hack to check this here, but I'm not sure what else
           // to do
-          Some(def_prim_ty(_)) => { /* do nothing */ }
-          Some(d) => traverse_def_id(cx, def_id_of_def(d)),
+          Some(&def_prim_ty(_)) => { /* do nothing */ }
+          Some(d) => traverse_def_id(cx, def_id_of_def(*d)),
           None    => { /* do nothing -- but should we fail here? */ }
         }
         for p.types.each |t| {
@@ -171,7 +171,7 @@ fn traverse_inline_body(cx: ctx, body: blk) {
           expr_path(_) => {
             match cx.tcx.def_map.find(&e.id) {
                 Some(d) => {
-                  traverse_def_id(cx, def_id_of_def(d));
+                  traverse_def_id(cx, def_id_of_def(*d));
                 }
                 None      => cx.tcx.sess.span_bug(e.span, fmt!("Unbound node \
                   id %? while traversing %s", e.id,
@@ -180,7 +180,7 @@ fn traverse_inline_body(cx: ctx, body: blk) {
           }
           expr_field(_, _, _) => {
             match cx.method_map.find(&e.id) {
-              Some(typeck::method_map_entry {
+              Some(&typeck::method_map_entry {
                   origin: typeck::method_static(did),
                   _
                 }) => {
@@ -191,7 +191,7 @@ fn traverse_inline_body(cx: ctx, body: blk) {
           }
           expr_method_call(*) => {
             match cx.method_map.find(&e.id) {
-              Some(typeck::method_map_entry {
+              Some(&typeck::method_map_entry {
                   origin: typeck::method_static(did),
                   _
                 }) => {

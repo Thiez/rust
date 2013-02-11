@@ -187,7 +187,7 @@ pub fn trans_log(log_ex: @ast::expr,
     let modname = path_str(ccx.sess, copy modpath);
 
     let global = if ccx.module_data.contains_key(&modname) {
-        ccx.module_data.get(&modname)
+        *ccx.module_data.get(&modname)
     } else {
         let s = link::mangle_internal_name_by_path_and_seq(
             ccx, modpath, ~"loglevel");

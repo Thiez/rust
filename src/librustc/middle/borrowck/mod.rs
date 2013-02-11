@@ -239,9 +239,9 @@ use core::cmp;
 use core::dvec::DVec;
 use core::io;
 use core::result::{Result, Ok, Err};
+use core::hashmap::linear::LinearMap;
 use std::list::{List, Cons, Nil};
 use std::list;
-use std::oldmap::{HashMap, Set};
 use syntax::ast::{mutability, m_mutbl, m_imm, m_const};
 use syntax::ast;
 use syntax::ast_map;
@@ -268,9 +268,9 @@ pub fn check_crate(
         moves_map: moves_map,
         capture_map: capture_map,
         root_map: root_map(),
-        mutbl_map: HashMap(),
-        write_guard_map: HashMap(),
-        stmt_map: HashMap(),
+        mutbl_map: @mut LinearMap::new(),
+        write_guard_map: @mut LinearMap::new(),
+        stmt_map: @mut LinearMap::new(),
         stats: @mut BorrowStats {
             loaned_paths_same: 0,
             loaned_paths_imm: 0,
@@ -341,7 +341,7 @@ pub struct RootInfo {
 // a map mapping id's of expressions of gc'd type (@T, @[], etc) where
 // the box needs to be kept live to the id of the scope for which they
 // must stay live.
-pub type root_map = HashMap<root_map_key, RootInfo>;
+pub type root_map = @mut LinearMap<root_map_key, RootInfo>;
 
 // the keys to the root map combine the `id` of the expression with
 // the number of types that it is autodereferenced.  So, for example,
@@ -356,11 +356,11 @@ pub struct root_map_key {
 
 // set of ids of local vars / formal arguments that are modified / moved.
 // this is used in trans for optimization purposes.
-pub type mutbl_map = HashMap<ast::node_id, ()>;
+pub type mutbl_map = @mut LinearMap<ast::node_id, ()>;
 
 // A set containing IDs of expressions of gc'd type that need to have a write
 // guard.
-pub type write_guard_map = HashMap<root_map_key, ()>;
+pub type write_guard_map = @mut LinearMap<root_map_key, ()>;
 
 // Errors that can occur
 #[deriving_eq]
@@ -400,8 +400,8 @@ pub struct Loan {lp: @loan_path, cmt: cmt, mutbl: ast::mutability}
 /// - `pure_map`: map from block/expr that must be pure to the error message
 ///   that should be reported if they are not pure
 pub type req_maps = {
-    req_loan_map: HashMap<ast::node_id, @DVec<Loan>>,
-    pure_map: HashMap<ast::node_id, bckerr>
+    req_loan_map: @mut LinearMap<ast::node_id, @DVec<Loan>>,
+    pure_map: @mut LinearMap<ast::node_id, bckerr>
 };
 
 pub fn save_and_restore<T:Copy,U>(save_and_restore_t: &mut T,
@@ -429,7 +429,7 @@ pub impl root_map_key : to_bytes::IterBytes {
 }
 
 pub fn root_map() -> root_map {
-    return HashMap();
+    return @mut LinearMap::new();
 }
 
 // ___________________________________________________________________________

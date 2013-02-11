@@ -18,7 +18,7 @@ use middle::ty;
 use core::int;
 use core::option::*;
 use core::vec;
-use std::oldmap::*;
+use core::hashmap::linear::LinearMap;
 use syntax::codemap::span;
 use syntax::print::pprust::path_to_str;
 use syntax::{ast, ast_util, visit};
@@ -32,7 +32,7 @@ pub struct freevar_entry {
     span: span     //< First span where it is accessed (there can be multiple)
 }
 pub type freevar_info = @~[@freevar_entry];
-pub type freevar_map = HashMap<ast::node_id, freevar_info>;
+pub type freevar_map = @mut LinearMap<ast::node_id, freevar_info>;
 
 // Searches through part of the AST for all references to locals or
 // upvars in this frame and returns the list of definition IDs thus found.
@@ -41,7 +41,7 @@ pub type freevar_map = HashMap<ast::node_id, freevar_info>;
 // in order to start the search.
 fn collect_freevars(def_map: resolve::DefMap, blk: ast::blk)
     -> freevar_info {
-    let seen = HashMap();
+    let seen = @mut LinearMap::new();
     let refs = @mut ~[];
 
     fn ignore_item(_i: @ast::item, &&_depth: int, _v: visit::vt<int>) { }
@@ -59,7 +59,7 @@ fn collect_freevars(def_map: resolve::DefMap, blk: ast::blk)
                   match def_map.find(&expr.id) {
                     None => die!(~"path not found"),
                     Some(df) => {
-                      let mut def = df;
+                      let mut def = *df;
                       while i < depth {
                         match copy def {
                           ast::def_upvar(_, inner, _, _) => { def = *inner; }
@@ -98,7 +98,7 @@ fn collect_freevars(def_map: resolve::DefMap, blk: ast::blk)
 // one pass. This could be improved upon if it turns out to matter.
 pub fn annotate_freevars(def_map: resolve::DefMap, crate: @ast::crate) ->
    freevar_map {
-    let freevars = HashMap();
+    let freevars = @mut LinearMap::new();
 
     let walk_fn = fn@(_fk: visit::fn_kind, _decl: ast::fn_decl,
                       blk: ast::blk, _sp: span, nid: ast::node_id) {
@@ -118,7 +118,7 @@ pub fn annotate_freevars(def_map: resolve::DefMap, crate: @ast::crate) ->
 pub fn get_freevars(tcx: ty::ctxt, fid: ast::node_id) -> freevar_info {
     match tcx.freevars.find(&fid) {
       None => die!(~"get_freevars: " + int::str(fid) + ~" has no freevars"),
-      Some(d) => return d
+      Some(d) => *d
     }
 }
 

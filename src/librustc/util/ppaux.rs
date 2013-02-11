@@ -37,7 +37,7 @@ use syntax::ast_map;
 
 use core::str;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 
 pub fn note_and_explain_region(cx: ctxt,
                                prefix: ~str,
@@ -189,7 +189,7 @@ pub fn re_scope_id_to_str(cx: ctxt, node_id: ast::node_id) -> ~str {
       }
       _ => { cx.sess.bug(
           fmt!("re_scope refers to %s",
-               ast_map::node_id_to_str(cx.items, node_id,
+               ast_map::node_id_to_str(*cx.items, node_id,
                                        cx.sess.parse_sess.interner))) }
     }
 }

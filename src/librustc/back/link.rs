@@ -36,7 +36,7 @@ use core::ptr;
 use core::run;
 use core::str;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use std::sha1::sha1;
 use syntax::ast;
 use syntax::ast_map::{path, path_mod, path_name};
@@ -597,7 +597,7 @@ pub fn symbol_hash(tcx: ty::ctxt, symbol_hasher: &hash::State, t: ty::t,
 
 pub fn get_symbol_hash(ccx: @crate_ctxt, t: ty::t) -> @str {
     match ccx.type_hashcodes.find(&t) {
-      Some(h) => h,
+      Some(h) => *h,
       None => {
         let hash = symbol_hash(ccx.tcx, ccx.symbol_hasher, t, ccx.link_meta);
         ccx.type_hashcodes.insert(t, hash);

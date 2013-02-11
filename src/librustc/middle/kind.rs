@@ -23,7 +23,7 @@ use util::ppaux::{ty_to_str, tys_to_str};
 use core::option;
 use core::str;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::*;
 use syntax::codemap::{span, spanned};
 use syntax::print::pprust::expr_to_str;
@@ -60,7 +60,7 @@ use syntax::{visit, ast_util};
 
 pub const try_adding: &str = "Try adding a move";
 
-pub type rval_map = HashMap<node_id, ()>;
+pub type rval_map = @mut LinearMap<node_id, ()>;
 
 pub type ctx = {
     tcx: ty::ctxt,
@@ -189,7 +189,7 @@ pub fn check_expr(e: @expr, cx: ctx, v: visit::vt<ctx>) {
     do option::iter(&cx.tcx.node_type_substs.find(&type_parameter_id)) |ts| {
         let bounds = match e.node {
           expr_path(_) => {
-            let did = ast_util::def_id_of_def(cx.tcx.def_map.get(&e.id));
+            let did = ast_util::def_id_of_def(*cx.tcx.def_map.get(&e.id));
             ty::lookup_item_type(cx.tcx, did).bounds
           }
           _ => {
@@ -202,15 +202,15 @@ pub fn check_expr(e: @expr, cx: ctx, v: visit::vt<ctx>) {
                 ~"non path/method call expr has type substs??")
           }
         };
-        if vec::len(*ts) != vec::len(*bounds) {
+        if ts.len() != bounds.len() {
             // Fail earlier to make debugging easier
             die!(fmt!("internal error: in kind::check_expr, length \
                        mismatch between actual and declared bounds: actual = \
                         %s (%u tys), declared = %? (%u tys)",
-                      tys_to_str(cx.tcx, *ts), ts.len(),
+                      tys_to_str(cx.tcx, **ts), ts.len(),
                       *bounds, (*bounds).len()));
         }
-        for vec::each2(*ts, *bounds) |ty, bound| {
+        for vec::each2(**ts, *bounds) |ty, bound| {
             check_bounds(cx, type_parameter_id, e.span, *ty, *bound)
         }
     }
@@ -248,9 +248,9 @@ fn check_ty(aty: @Ty, cx: ctx, v: visit::vt<ctx>) {
     match aty.node {
       ty_path(_, id) => {
         do option::iter(&cx.tcx.node_type_substs.find(&id)) |ts| {
-            let did = ast_util::def_id_of_def(cx.tcx.def_map.get(&id));
+            let did = ast_util::def_id_of_def(*cx.tcx.def_map.get(&id));
             let bounds = ty::lookup_item_type(cx.tcx, did).bounds;
-            for vec::each2(*ts, *bounds) |ty, bound| {
+            for vec::each2(**ts, *bounds) |ty, bound| {
                 check_bounds(cx, aty.id, aty.span, *ty, *bound)
             }
         }
@@ -314,7 +314,7 @@ fn is_nullary_variant(cx: ctx, ex: @expr) -> bool {
     match ex.node {
       expr_path(_) => {
         match cx.tcx.def_map.get(&ex.id) {
-          def_variant(edid, vdid) => {
+          &def_variant(edid, vdid) => {
             vec::len(ty::enum_variant_with_id(cx.tcx, edid, vdid).args) == 0u
           }
           _ => false

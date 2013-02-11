@@ -268,7 +268,7 @@ pub fn ensure_trait_methods(ccx: @mut CrateCtxt,
 
 
     let tcx = ccx.tcx;
-    let region_paramd = tcx.region_paramd_items.find(&id);
+    let region_paramd = tcx.region_paramd_items.find(&id).map(|t|{**t});
     match tcx.items.get(&id) {
       &ast_map::node_item(@ast::item {
                 node: ast::item_trait(ref params, _, ref ms),
@@ -594,7 +594,7 @@ pub fn ensure_no_ty_param_bounds(ccx: @mut CrateCtxt,
 
 pub fn convert(ccx: @mut CrateCtxt, it: @ast::item) {
     let tcx = ccx.tcx;
-    let rp = tcx.region_paramd_items.find(&it.id);
+    let rp = tcx.region_paramd_items.find(&it.id).map(|t| {**t});
     debug!("convert: item %s with id %d rp %?",
            tcx.sess.str_of(it.ident), it.id, rp);
     match /*bad*/copy it.node {
@@ -790,10 +790,10 @@ pub fn ty_of_item(ccx: @mut CrateCtxt, it: @ast::item)
     let def_id = local_def(it.id);
     let tcx = ccx.tcx;
     match tcx.tcache.find(&def_id) {
-      Some(tpt) => return tpt,
+      Some(tpt) => return *tpt,
       _ => {}
     }
-    let rp = tcx.region_paramd_items.find(&it.id);
+    let rp = tcx.region_paramd_items.find(&it.id).map(|t|{**t});
     match /*bad*/copy it.node {
       ast::item_const(t, _) => {
         let typ = ccx.to_ty(empty_rscope, t);
@@ -817,11 +817,11 @@ pub fn ty_of_item(ccx: @mut CrateCtxt, it: @ast::item)
       }
       ast::item_ty(t, tps) => {
         match tcx.tcache.find(&local_def(it.id)) {
-          Some(tpt) => return tpt,
+          Some(tpt) => return *tpt,
           None => { }
         }
 
-        let rp = tcx.region_paramd_items.find(&it.id);
+        let rp = tcx.region_paramd_items.find(&it.id).map(|t|{**t});
         let tpt = {
             let ty = {
                 let t0 = ccx.to_ty(type_rscope(rp), t);
@@ -937,7 +937,7 @@ pub fn ty_param_bounds(ccx: @mut CrateCtxt,
                     -> @~[ty::param_bounds] {
     @do params.map |param| {
         match ccx.tcx.ty_param_bounds.find(&param.id) {
-          Some(bs) => bs,
+          Some(bs) => *bs,
           None => {
             let bounds = compute_bounds(ccx, param.bounds);
             ccx.tcx.ty_param_bounds.insert(param.id, bounds);

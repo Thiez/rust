@@ -34,10 +34,9 @@ use core::io;
 use core::option;
 use core::str;
 use core::vec;
+use core::hashmap::linear::LinearMap;
 use std::ebml::reader;
 use std::ebml;
-use std::oldmap::HashMap;
-use std::oldmap;
 use std::serialize::Decodable;
 use syntax::ast_map;
 use syntax::attr;
@@ -1098,7 +1097,7 @@ pub fn translate_def_id(cdata: cmd, did: ast::def_id) -> ast::def_id {
     }
 
     match cdata.cnum_map.find(&did.crate) {
-      option::Some(n) => ast::def_id { crate: n, node: did.node },
+      option::Some(n) => ast::def_id { crate: *n, node: did.node },
       option::None => die!(~"didn't find a crate in the cnum_map")
     }
 }

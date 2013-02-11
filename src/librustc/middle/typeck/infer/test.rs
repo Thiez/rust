@@ -25,12 +25,12 @@ use middle::lang_items::{LanguageItems, language_items};
 use middle::ty::{FnTyBase, FnMeta, FnSig};
 use util::ppaux::ty_to_str;
 
+use core::hashmap::linear::LinearMap;
 use std::getopts::groups::{optopt, optmulti, optflag, optflagopt, getopts};
 use std::getopts::groups;
 use std::getopts::{opt_present};
 use std::getopts;
 use std::getopts;
-use std::oldmap::HashMap;
 use syntax::codemap::dummy_sp;
 use syntax::parse::parse_crate_from_source_str;
 use syntax::{ast, attr, parse};

@@ -36,9 +36,9 @@ use core::str;
 use core::to_bytes::IterBytes;
 use core::uint;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use std::serialize::Encodable;
-use std::{ebml, oldmap};
+use std::ebml;
 use std;
 use syntax::ast::*;
 use syntax::ast;
@@ -52,7 +52,7 @@ use syntax;
 use writer = std::ebml::writer;
 
 // used by astencode:
-type abbrev_map = oldmap::HashMap<ty::t, tyencode::ty_abbrev>;
+type abbrev_map = @mut LinearMap<ty::t, tyencode::ty_abbrev>;
 
 pub type encode_inlined_item = fn@(ecx: @encode_ctxt,
                                    ebml_w: writer::Encoder,
@@ -62,10 +62,10 @@ pub type encode_inlined_item = fn@(ecx: @encode_ctxt,
 pub type encode_parms = {
     diag: span_handler,
     tcx: ty::ctxt,
-    reachable: HashMap<ast::node_id, ()>,
+    reachable: @mut LinearMap<ast::node_id, ()>,
     reexports2: middle::resolve::ExportMap2,
-    item_symbols: HashMap<ast::node_id, ~str>,
-    discrim_symbols: HashMap<ast::node_id, ~str>,
+    item_symbols: @mut LinearMap<ast::node_id, ~str>,
+    discrim_symbols: @mut LinearMap<ast::node_id, ~str>,
     link_meta: link_meta,
     cstore: @mut cstore::CStore,
     encode_inlined_item: encode_inlined_item
@@ -88,10 +88,10 @@ pub enum encode_ctxt = {
     diag: span_handler,
     tcx: ty::ctxt,
     stats: @mut Stats,
-    reachable: HashMap<ast::node_id, ()>,
+    reachable: @mut LinearMap<ast::node_id, ()>,
     reexports2: middle::resolve::ExportMap2,
-    item_symbols: HashMap<ast::node_id, ~str>,
-    discrim_symbols: HashMap<ast::node_id, ~str>,
+    item_symbols: @mut LinearMap<ast::node_id, ~str>,
+    discrim_symbols: @mut LinearMap<ast::node_id, ~str>,
     link_meta: link_meta,
     cstore: @mut cstore::CStore,
     encode_inlined_item: encode_inlined_item,
@@ -184,7 +184,7 @@ fn encode_ty_type_param_bounds(ebml_w: writer::Encoder, ecx: @encode_ctxt,
 fn encode_type_param_bounds(ebml_w: writer::Encoder, ecx: @encode_ctxt,
                             params: &[ty_param]) {
     let ty_param_bounds =
-        @params.map(|param| ecx.tcx.ty_param_bounds.get(&param.id));
+        @params.map(|param| *ecx.tcx.ty_param_bounds.get(&param.id));
     encode_ty_type_param_bounds(ebml_w, ecx, ty_param_bounds);
 }
 
@@ -225,7 +225,7 @@ fn encode_type(ecx: @encode_ctxt, ebml_w: writer::Encoder, typ: ty::t) {
 fn encode_symbol(ecx: @encode_ctxt, ebml_w: writer::Encoder, id: node_id) {
     ebml_w.start_tag(tag_items_data_item_symbol);
     let sym = match ecx.item_symbols.find(&id) {
-      Some(ref x) => (/*bad*/copy *x),
+      Some(x) => (/*bad*/copy *x),
       None => {
         ecx.diag.handler().bug(
             fmt!("encode_symbol: id not found %d", id));
@@ -238,7 +238,7 @@ fn encode_symbol(ecx: @encode_ctxt, ebml_w: writer::Encoder, id: node_id) {
 fn encode_discriminant(ecx: @encode_ctxt, ebml_w: writer::Encoder,
                        id: node_id) {
     ebml_w.start_tag(tag_items_data_item_symbol);
-    ebml_w.writer.write(str::to_bytes(ecx.discrim_symbols.get(&id)));
+    ebml_w.writer.write(str::to_bytes(*ecx.discrim_symbols.get(&id)));
     ebml_w.end_tag();
 }
 
@@ -334,7 +334,7 @@ fn encode_info_for_mod(ecx: @encode_ctxt, ebml_w: writer::Encoder,
                         (%?/%?)",
                         ecx.tcx.sess.str_of(ident),
                         did,
-                        ast_map::node_id_to_str(ecx.tcx.items, did, ecx.tcx
+                        ast_map::node_id_to_str(*ecx.tcx.items, did, ecx.tcx
                                                 .sess.parse_sess.interner));
 
                 ebml_w.start_tag(tag_mod_impl);

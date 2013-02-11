@@ -32,8 +32,7 @@ use core::u32;
 use core::u64;
 use core::uint;
 use core::vec;
-use std::oldmap::{Map, HashMap};
-use std::oldmap;
+use core::hashmap::linear::LinearMap;
 use std::oldsmallintmap::{Map, SmallIntMap};
 use std::oldsmallintmap;
 use syntax::ast_util::{path_to_ident};
@@ -117,7 +116,7 @@ type lint_spec = @{lint: lint,
                    desc: &static/str,
                    default: level};
 
-pub type lint_dict = HashMap<~str,lint_spec>;
+pub type lint_dict = @mut LinearMap<~str,lint_spec>;
 
 /*
   Pass names should not contain a '-', as the compiler normalizes
@@ -233,12 +232,16 @@ pub fn get_lint_dict() -> lint_dict {
            default: warn}),
         */
     ];
-    oldmap::hash_from_vec(v)
+    let mut map = @mut LinearMap::new();
+    for v.each() |&(key,value)| {
+        map.insert(copy key,copy value);
+    }
+    map
 }
 
 // This is a highly not-optimal set of data structure decisions.
 type lint_modes = SmallIntMap<level>;
-type lint_mode_map = HashMap<ast::node_id, lint_modes>;
+type lint_mode_map = @mut LinearMap<ast::node_id, lint_modes>;
 
 // settings_map maps node ids of items with non-default lint settings
 // to their settings; default_settings contains the settings for everything
@@ -250,7 +253,7 @@ pub type lint_settings = {
 
 pub fn mk_lint_settings() -> lint_settings {
     {default_settings: oldsmallintmap::mk(),
-     settings_map: HashMap()}
+     settings_map: @mut LinearMap::new()}
 }
 
 pub fn get_lint_level(modes: lint_modes, lint: lint) -> level {
@@ -266,7 +269,7 @@ pub fn get_lint_settings_level(settings: lint_settings,
                                item_id: ast::node_id)
                             -> level {
     match settings.settings_map.find(&item_id) {
-      Some(modes) => get_lint_level(modes, lint_mode),
+      Some(modes) => get_lint_level(*modes, lint_mode),
       None => get_lint_level(settings.default_settings, lint_mode)
     }
 }
@@ -685,14 +688,14 @@ fn check_item_ctypes(cx: ty::ctxt, it: @ast::item) {
             match ty.node {
               ast::ty_path(_, id) => {
                 match cx.def_map.get(&id) {
-                  ast::def_prim_ty(ast::ty_int(ast::ty_i)) => {
+                  &ast::def_prim_ty(ast::ty_int(ast::ty_i)) => {
                     cx.sess.span_lint(
                         ctypes, id, fn_id,
                         ty.span,
                         ~"found rust type `int` in foreign module, while \
                          libc::c_int or libc::c_long should be used");
                   }
-                  ast::def_prim_ty(ast::ty_uint(ast::ty_u)) => {
+                  &ast::def_prim_ty(ast::ty_uint(ast::ty_u)) => {
                     cx.sess.span_lint(
                         ctypes, id, fn_id,
                         ty.span,

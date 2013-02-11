@@ -30,9 +30,9 @@ use util::common::stmt_set;
 use core::cmp;
 use core::dvec::DVec;
 use core::vec;
+use core::hashmap::linear::LinearMap;
 use std::list;
 use std::list::list;
-use std::oldmap::HashMap;
 use syntax::ast_map;
 use syntax::codemap::span;
 use syntax::print::pprust;
@@ -57,7 +57,7 @@ Encodes the bounding lifetime for a given AST node:
 - Variables and bindings are mapped to the block in which they are declared.
 
 */
-pub type region_map = HashMap<ast::node_id, ast::node_id>;
+pub type region_map = @mut LinearMap<ast::node_id, ast::node_id>;
 
 pub struct ctxt {
     sess: Session,
@@ -73,7 +73,7 @@ pub struct ctxt {
     // the condition in a while loop is always a parent.  In those
     // cases, we add the node id of such an expression to this set so
     // that when we visit it we can view it as a parent.
-    root_exprs: HashMap<ast::node_id, ()>,
+    root_exprs: @mut LinearMap<ast::node_id, ()>,
 
     // The parent scope is the innermost block, statement, call, or match
     // expression during the execution of which the current expression
@@ -117,7 +117,7 @@ pub fn scope_contains(region_map: region_map, superscope: ast::node_id,
     while superscope != subscope {
         match region_map.find(&subscope) {
             None => return false,
-            Some(scope) => subscope = scope
+            Some(scope) => subscope = *scope
         }
     }
     return true;
@@ -162,8 +162,8 @@ pub fn nearest_common_ancestor(region_map: region_map,
             match region_map.find(&scope) {
                 None => return result,
                 Some(superscope) => {
-                    result.push(superscope);
-                    scope = superscope;
+                    result.push(*superscope);
+                    scope = *superscope;
                 }
             }
         }
@@ -239,7 +239,7 @@ pub fn resolve_pat(pat: @ast::pat, cx: ctxt, visitor: visit::vt<ctxt>) {
       ast::pat_ident(*) => {
         let defn_opt = cx.def_map.find(&pat.id);
         match defn_opt {
-          Some(ast::def_variant(_,_)) => {
+          Some(&ast::def_variant(_,_)) => {
             /* Nothing to do; this names a variant. */
           }
           _ => {
@@ -361,8 +361,8 @@ pub fn resolve_crate(sess: Session,
                   -> region_map {
     let cx: ctxt = ctxt {sess: sess,
                          def_map: def_map,
-                         region_map: HashMap(),
-                         root_exprs: HashMap(),
+                         region_map: @mut LinearMap::new(),
+                         root_exprs: @mut LinearMap::new(),
                          parent: None};
     let visitor = visit::mk_vt(@visit::Visitor {
         visit_block: resolve_block,
@@ -398,7 +398,7 @@ pub fn resolve_crate(sess: Session,
 // a worklist.  We can then process the worklist, propagating indirect
 // dependencies until a fixed point is reached.
 
-pub type region_paramd_items = HashMap<ast::node_id, region_variance>;
+pub type region_paramd_items = @mut LinearMap<ast::node_id, region_variance>;
 
 #[deriving_eq]
 pub struct region_dep {
@@ -406,11 +406,11 @@ pub struct region_dep {
     id: ast::node_id
 }
 
-pub type dep_map = HashMap<ast::node_id, @DVec<region_dep>>;
+pub type dep_map = @mut LinearMap<ast::node_id, @DVec<region_dep>>;
 
 pub struct DetermineRpCtxt {
     sess: Session,
-    ast_map: ast_map::map,
+    ast_map: @mut ast_map::map,
     def_map: resolve::DefMap,
     region_paramd_items: region_paramd_items,
     dep_map: dep_map,
@@ -471,14 +471,14 @@ pub impl DetermineRpCtxt {
     /// the new variance is joined with the old variance.
     fn add_rp(@mut self, id: ast::node_id, variance: region_variance) {
         assert id != 0;
-        let old_variance = self.region_paramd_items.find(&id);
+        let old_variance = self.region_paramd_items.find(&id).map(|t|{**t});
         let joined_variance = match old_variance {
           None => variance,
           Some(v) => join_variance(v, variance)
         };
 
         debug!("add_rp() variance for %s: %? == %? ^ %?",
-               ast_map::node_id_to_str(self.ast_map, id,
+               ast_map::node_id_to_str(*self.ast_map, id,
                                        self.sess.parse_sess.interner),
                joined_variance, old_variance, variance);
 
@@ -497,13 +497,13 @@ pub impl DetermineRpCtxt {
     fn add_dep(@mut self, from: ast::node_id) {
         debug!("add dependency from %d -> %d (%s -> %s) with variance %?",
                from, self.item_id,
-               ast_map::node_id_to_str(self.ast_map, from,
+               ast_map::node_id_to_str(*self.ast_map, from,
                                        self.sess.parse_sess.interner),
-               ast_map::node_id_to_str(self.ast_map, self.item_id,
+               ast_map::node_id_to_str(*self.ast_map, self.item_id,
                                        self.sess.parse_sess.interner),
                copy self.ambient_variance);
         let vec = match self.dep_map.find(&from) {
-            Some(vec) => vec,
+            Some(vec) => *vec,
             None => {
                 let vec = @DVec();
                 let dep_map = self.dep_map;
@@ -688,7 +688,7 @@ pub fn determine_rp_in_ty(ty: @ast::Ty,
     match ty.node {
       ast::ty_path(path, id) => {
         match cx.def_map.find(&id) {
-          Some(ast::def_ty(did)) | Some(ast::def_struct(did)) => {
+          Some(&ast::def_ty(did)) | Some(&ast::def_struct(did)) => {
             if did.crate == ast::local_crate {
                 if cx.opt_region_is_relevant(path.rp) {
                     cx.add_dep(did.node);
@@ -786,7 +786,7 @@ pub fn determine_rp_in_struct_field(
 }
 
 pub fn determine_rp_in_crate(sess: Session,
-                             ast_map: ast_map::map,
+                             ast_map: @mut ast_map::map,
                              def_map: resolve::DefMap,
                              crate: @ast::crate)
                           -> region_paramd_items {
@@ -794,8 +794,8 @@ pub fn determine_rp_in_crate(sess: Session,
         sess: sess,
         ast_map: ast_map,
         def_map: def_map,
-        region_paramd_items: HashMap(),
-        dep_map: HashMap(),
+        region_paramd_items: @mut LinearMap::new(),
+        dep_map: @mut LinearMap::new(),
         worklist: ~[],
         item_id: 0,
         anon_implies_rp: false,
@@ -824,7 +824,7 @@ pub fn determine_rp_in_crate(sess: Session,
     // update the region-parameterization of D to reflect the result.
     while cx.worklist.len() != 0 {
         let c_id = cx.worklist.pop();
-        let c_variance = cx.region_paramd_items.get(&c_id);
+        let c_variance = *cx.region_paramd_items.get(&c_id);
         debug!("popped %d from worklist", c_id);
         match cx.dep_map.find(&c_id) {
           None => {}
@@ -840,12 +840,12 @@ pub fn determine_rp_in_crate(sess: Session,
     debug!("%s", {
         debug!("Region variance results:");
         let region_paramd_items = cx.region_paramd_items;
-        for region_paramd_items.each |&key, &value| {
+        for region_paramd_items.each |&(key, value)| {
             debug!("item %? (%s) is parameterized with variance %?",
-                   key,
-                   ast_map::node_id_to_str(ast_map, key,
+                   *key,
+                   ast_map::node_id_to_str(*ast_map, *key,
                                            sess.parse_sess.interner),
-                   value);
+                   *value);
         }
         "----"
     });

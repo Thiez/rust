@@ -41,8 +41,7 @@ use core::to_bytes;
 use core::uint;
 use core::vec;
 use core::hashmap::linear::LinearMap;
-//use std::oldmap::HashMap;
-//use std::{oldmap, oldsmallintmap};
+use std::oldsmallintmap;
 use syntax::ast::*;
 use syntax::ast_util::{is_local, local_def};
 use syntax::ast_util;
@@ -109,7 +108,7 @@ pub struct creader_cache_key {
     len: uint
 }
 
-type creader_cache = HashMap<creader_cache_key, t>;
+type creader_cache = @mut LinearMap<creader_cache_key, t>;
 
 impl creader_cache_key : to_bytes::IterBytes {
     pure fn iter_bytes(&self, +lsb0: bool, f: to_bytes::Cb) {
@@ -206,7 +205,7 @@ pub enum AutoRefKind {
 // This is a map from ID of each implementation to the method info and trait
 // method ID of each of the default methods belonging to the trait that that
 // implementation implements.
-pub type ProvidedMethodsMap = HashMap<def_id,@DVec<@ProvidedMethodInfo>>;
+pub type ProvidedMethodsMap = @mut LinearMap<def_id,@DVec<@ProvidedMethodInfo>>;
 
 // Stores the method info and definition ID of the associated trait method for
 // each instantiation of each provided method.
@@ -229,7 +228,7 @@ pub type ctxt = @ctxt_;
 
 struct ctxt_ {
     diag: syntax::diagnostic::span_handler,
-    interner: HashMap<intern_key, t_box>,
+    interner: @mut LinearMap<intern_key, t_box>,
     mut next_id: uint,
     vecs_implicitly_copyable: bool,
     legacy_modes: bool,
@@ -250,45 +249,45 @@ struct ctxt_ {
     // of this node.  This only applies to nodes that refer to entities
     // parameterized by type parameters, such as generic fns, types, or
     // other items.
-    node_type_substs: HashMap<node_id, ~[t]>,
+    node_type_substs: @mut LinearMap<node_id, ~[t]>,
 
-    items: ast_map::map,
-    intrinsic_defs: HashMap<ast::ident, (ast::def_id, t)>,
+    items: @mut ast_map::map,
+    intrinsic_defs: @mut LinearMap<ast::ident, (ast::def_id, t)>,
     freevars: freevars::freevar_map,
     tcache: type_cache,
     rcache: creader_cache,
     ccache: constness_cache,
-    short_names_cache: HashMap<t, @~str>,
-    needs_drop_cache: HashMap<t, bool>,
-    needs_unwind_cleanup_cache: HashMap<t, bool>,
-    mut tc_cache: LinearMap<uint, TypeContents>,
-    ast_ty_to_ty_cache: HashMap<@ast::Ty, ast_ty_to_ty_cache_entry>,
-    enum_var_cache: HashMap<def_id, @~[VariantInfo]>,
-    trait_method_cache: HashMap<def_id, @~[method]>,
-    ty_param_bounds: HashMap<ast::node_id, param_bounds>,
-    inferred_modes: HashMap<ast::node_id, ast::mode>,
-    adjustments: HashMap<ast::node_id, @AutoAdjustment>,
-    normalized_cache: HashMap<t, t>,
+    short_names_cache: @mut LinearMap<t, @~str>,
+    needs_drop_cache: @mut LinearMap<t, bool>,
+    needs_unwind_cleanup_cache: @mut LinearMap<t, bool>,
+    mut tc_cache: @mut LinearMap<uint, TypeContents>,
+    ast_ty_to_ty_cache: @mut LinearMap<@ast::Ty, ast_ty_to_ty_cache_entry>,
+    enum_var_cache: @mut LinearMap<def_id, @~[VariantInfo]>,
+    trait_method_cache: @mut LinearMap<def_id, @~[method]>,
+    ty_param_bounds: @mut LinearMap<ast::node_id, param_bounds>,
+    inferred_modes: @mut LinearMap<ast::node_id, ast::mode>,
+    adjustments: @mut LinearMap<ast::node_id, @AutoAdjustment>,
+    normalized_cache: @mut LinearMap<t, t>,
     lang_items: middle::lang_items::LanguageItems,
-    legacy_boxed_traits: HashMap<node_id, ()>,
+    legacy_boxed_traits: @mut LinearMap<node_id, ()>,
     // A mapping from an implementation ID to the method info and trait
     // method ID of the provided (a.k.a. default) methods in the traits that
     // that implementation implements.
     provided_methods: ProvidedMethodsMap,
-    provided_method_sources: HashMap<ast::def_id, ProvidedMethodSource>,
-    supertraits: HashMap<ast::def_id, @~[InstantiatedTraitRef]>,
+    provided_method_sources: @mut LinearMap<ast::def_id, ProvidedMethodSource>,
+    supertraits: @mut LinearMap<ast::def_id, @~[InstantiatedTraitRef]>,
 
     // A mapping from the def ID of an enum or struct type to the def ID
     // of the method that implements its destructor. If the type is not
     // present in this map, it does not have a destructor. This map is
     // populated during the coherence phase of typechecking.
-    destructor_for_type: HashMap<ast::def_id, ast::def_id>,
+    destructor_for_type: @mut LinearMap<ast::def_id, ast::def_id>,
 
     // A method will be in this list if and only if it is a destructor.
-    destructors: HashMap<ast::def_id, ()>,
+    destructors: @mut LinearMap<ast::def_id, ()>,
 
     // Maps a trait onto a mapping from self-ty to impl
-    trait_impls: HashMap<ast::def_id, HashMap<t, @Impl>>
+    trait_impls: @mut LinearMap<ast::def_id, @mut LinearMap<t, @Impl>>
 }
 
 enum tbox_flag {
@@ -755,24 +754,25 @@ pub type ty_param_bounds_and_ty = {bounds: @~[param_bounds],
 
 pub type ty_param_substs_and_ty = {substs: ty::substs, ty: ty::t};
 
-type type_cache = HashMap<ast::def_id, ty_param_bounds_and_ty>;
+type type_cache = @mut LinearMap<ast::def_id, ty_param_bounds_and_ty>;
 
-type constness_cache = HashMap<ast::def_id, const_eval::constness>;
+type constness_cache = @mut LinearMap<ast::def_id, const_eval::constness>;
 
 pub type node_type_table = @oldsmallintmap::SmallIntMap<t>;
 
 fn mk_rcache() -> creader_cache {
     type val = {cnum: int, pos: uint, len: uint};
-    return LinearMap::new();
+    return @mut LinearMap::new();
 }
 
-pub fn new_ty_hash<V: Copy>() -> LinearMap<t, V> {
-    LinearMap::new();
+pub fn new_ty_hash<V: Copy>() -> @mut LinearMap<t, V> {
+    let result: @mut LinearMap<t,V> = @mut LinearMap::new();
+    result
 }
 
 pub fn mk_ctxt(s: session::Session,
                dm: resolve::DefMap,
-               amap: ast_map::map,
+               amap: @mut ast_map::map,
                freevars: freevars::freevar_map,
                region_map: middle::region::region_map,
                region_paramd_items: middle::region::region_paramd_items,
@@ -795,7 +795,7 @@ pub fn mk_ctxt(s: session::Session,
         }
     }
     
-    let interner = oldmap::HashMap();
+    let interner = @mut LinearMap::new();
     let vecs_implicitly_copyable =
         get_lint_level(s.lint_settings.default_settings,
                        lint::vecs_implicitly_copyable) == allow;
@@ -812,32 +812,32 @@ pub fn mk_ctxt(s: session::Session,
         region_map: region_map,
         region_paramd_items: region_paramd_items,
         node_types: @oldsmallintmap::mk(),
-        node_type_substs: oldmap::HashMap(),
+        node_type_substs: @mut LinearMap::new(),
         items: amap,
-        intrinsic_defs: oldmap::HashMap(),
+        intrinsic_defs: @mut LinearMap::new(),
         freevars: freevars,
-        tcache: HashMap(),
+        tcache: @mut LinearMap::new(),
         rcache: mk_rcache(),
-        ccache: HashMap(),
+        ccache: @mut LinearMap::new(),
         short_names_cache: new_ty_hash(),
         needs_drop_cache: new_ty_hash(),
         needs_unwind_cleanup_cache: new_ty_hash(),
-        tc_cache: LinearMap::new(),
-        ast_ty_to_ty_cache: HashMap(),
-        enum_var_cache: HashMap(),
-        trait_method_cache: HashMap(),
-        ty_param_bounds: HashMap(),
-        inferred_modes: HashMap(),
-        adjustments: HashMap(),
+        tc_cache: @mut LinearMap::new(),
+        ast_ty_to_ty_cache: @mut LinearMap::new(),
+        enum_var_cache: @mut LinearMap::new(),
+        trait_method_cache: @mut LinearMap::new(),
+        ty_param_bounds: @mut LinearMap::new(),
+        inferred_modes: @mut LinearMap::new(),
+        adjustments: @mut LinearMap::new(),
         normalized_cache: new_ty_hash(),
         lang_items: move lang_items,
-        legacy_boxed_traits: HashMap(),
-        provided_methods: HashMap(),
-        provided_method_sources: HashMap(),
-        supertraits: HashMap(),
-        destructor_for_type: HashMap(),
-        destructors: HashMap(),
-        trait_impls: HashMap()
+        legacy_boxed_traits: @mut LinearMap::new(),
+        provided_methods: @mut LinearMap::new(),
+        provided_method_sources: @mut LinearMap::new(),
+        supertraits: @mut LinearMap::new(),
+        destructor_for_type: @mut LinearMap::new(),
+        destructors: @mut LinearMap::new(),
+        trait_impls: @mut LinearMap::new()
      }
 }
 
@@ -1128,7 +1128,7 @@ pub fn default_arg_mode_for_ty(tcx: ctxt, ty: ty::t) -> ast::rmode {
 // with id `id`.
 pub fn encl_region(cx: ctxt, id: ast::node_id) -> ty::Region {
     match cx.region_map.find(&id) {
-      Some(encl_scope) => ty::re_scope(encl_scope),
+      Some(encl_scope) => ty::re_scope(*encl_scope),
       None => ty::re_static
     }
 }
@@ -1590,7 +1590,7 @@ pub fn type_is_immediate(ty: t) -> bool {
 
 pub fn type_needs_drop(cx: ctxt, ty: t) -> bool {
     match cx.needs_drop_cache.find(&ty) {
-      Some(result) => return result,
+      Some(result) => return *result,
       None => {/* fall through */ }
     }
 
@@ -1670,7 +1670,7 @@ pub fn type_needs_drop(cx: ctxt, ty: t) -> bool {
 // cleanups.
 pub fn type_needs_unwind_cleanup(cx: ctxt, ty: t) -> bool {
     match cx.needs_unwind_cleanup_cache.find(&ty) {
-      Some(result) => return result,
+      Some(result) => return *result,
       None => ()
     }
 
@@ -1682,7 +1682,7 @@ pub fn type_needs_unwind_cleanup(cx: ctxt, ty: t) -> bool {
 }
 
 fn type_needs_unwind_cleanup_(cx: ctxt, ty: t,
-                              tycache: oldmap::HashMap<t, ()>,
+                              tycache: @mut LinearMap<t, ()>,
                               encountered_box: bool) -> bool {
 
     // Prevent infinite recursion
@@ -1897,8 +1897,8 @@ pub fn type_contents(cx: ctxt, ty: t) -> TypeContents {
         None => {}
     }
 
-    let mut cache = LinearMap::new();
-    let result = tc_ty(cx, ty, &mut cache);
+    let mut cache = @mut LinearMap::new();
+    let result = tc_ty(cx, ty, cache);
     cx.tc_cache.insert(ty_id, result);
     return result;
 
@@ -2053,7 +2053,7 @@ pub fn type_contents(cx: ctxt, ty: t) -> TypeContents {
                 assert p.def_id.crate == ast::local_crate;
 
                 param_bounds_to_contents(
-                    cx, cx.ty_param_bounds.get(&p.def_id.node))
+                    cx, *cx.ty_param_bounds.get(&p.def_id.node))
             }
 
             ty_self => {
@@ -2755,8 +2755,8 @@ impl sty : to_bytes::IterBytes {
     }
 }
 
-pub fn br_hashmap<V:Copy>() -> HashMap<bound_region, V> {
-    oldmap::HashMap()
+pub fn br_hashmap<V:Copy>() -> LinearMap<bound_region, V> {
+    LinearMap::new()
 }
 
 pub fn node_id_to_type(cx: ctxt, id: ast::node_id) -> t {
@@ -2765,7 +2765,7 @@ pub fn node_id_to_type(cx: ctxt, id: ast::node_id) -> t {
        Some(t) => t,
        None => cx.sess.bug(
            fmt!("node_id_to_type: no type for node `%s`",
-                ast_map::node_id_to_str(cx.items, id,
+                ast_map::node_id_to_str(*cx.items, id,
                                         cx.sess.parse_sess.interner)))
     }
 }
@@ -2773,7 +2773,7 @@ pub fn node_id_to_type(cx: ctxt, id: ast::node_id) -> t {
 pub fn node_id_to_type_params(cx: ctxt, id: ast::node_id) -> ~[t] {
     match cx.node_type_substs.find(&id) {
       None => return ~[],
-      Some(ts) => return ts
+      Some(ts) => return copy *ts
     }
 }
 
@@ -3050,7 +3050,7 @@ pub fn method_call_bounds(tcx: ctxt, method_map: typeck::method_map,
 
 fn resolve_expr(tcx: ctxt, expr: @ast::expr) -> ast::def {
     match tcx.def_map.find(&expr.id) {
-        Some(def) => def,
+        Some(def) => *def,
         None => {
             tcx.sess.span_bug(expr.span, fmt!(
                 "No def-map entry for expr %?", expr.id));
@@ -3300,12 +3300,12 @@ pub fn occurs_check(tcx: ctxt, sp: span, vid: TyVid, rt: t) {
 
 // Maintains a little union-set tree for inferred modes.  `canon()` returns
 // the current head value for `m0`.
-fn canon<T:Copy cmp::Eq>(tbl: HashMap<ast::node_id, ast::inferable<T>>,
+fn canon<T:Copy cmp::Eq>(tbl: @mut LinearMap<ast::node_id, ast::inferable<T>>,
                          +m0: ast::inferable<T>) -> ast::inferable<T> {
     match m0 {
       ast::infer(id) => match tbl.find(&id) {
         None => m0,
-        Some(ref m1) => {
+        Some(m1) => {
             let cm1 = canon(tbl, (*m1));
             // path compression:
             if cm1 != (*m1) { tbl.insert(id, cm1); }
@@ -3591,7 +3591,7 @@ pub fn trait_supertraits(cx: ctxt,
                       -> @~[InstantiatedTraitRef] {
     // Check the cache.
     match cx.supertraits.find(&id) {
-        Some(instantiated_trait_info) => { return instantiated_trait_info; }
+        Some(instantiated_trait_info) => { return *instantiated_trait_info; }
         None => {}  // Continue.
     }
 
@@ -3621,7 +3621,7 @@ pub fn trait_supertraits(cx: ctxt,
 pub fn trait_methods(cx: ctxt, id: ast::def_id) -> @~[method] {
     match cx.trait_method_cache.find(&id) {
       // Local traits are supposed to have been added explicitly.
-      Some(ms) => ms,
+      Some(ms) => *ms,
       _ => {
         // If the lookup in trait_method_cache fails, assume that the trait
         // method we're trying to look up is in a different crate, and look
@@ -3756,7 +3756,7 @@ impl DtorKind {
    Otherwise return none. */
 pub fn ty_dtor(cx: ctxt, struct_id: def_id) -> DtorKind {
     match cx.destructor_for_type.find(&struct_id) {
-        Some(method_def_id) => return TraitDtor(method_def_id),
+        Some(method_def_id) => return TraitDtor(*method_def_id),
         None => {}  // Continue.
     }
 
@@ -3854,7 +3854,7 @@ pub fn type_is_empty(cx: ctxt, t: t) -> bool {
 
 pub fn enum_variants(cx: ctxt, id: ast::def_id) -> @~[VariantInfo] {
     match cx.enum_var_cache.find(&id) {
-      Some(ref variants) => return *variants,
+      Some(variants) => return *variants,
       _ => { /* fallthrough */ }
     }
 
@@ -3944,7 +3944,7 @@ pub fn lookup_item_type(cx: ctxt,
       Some(tpt) => {
         // The item is in this crate. The caller should have added it to the
         // type cache already
-        return tpt;
+        return *tpt;
       }
       None => {
         assert did.crate != ast::local_crate;
@@ -4005,7 +4005,7 @@ pub fn lookup_struct_fields(cx: ctxt, did: ast::def_id) -> ~[field_ty] {
        _ => {
            cx.sess.bug(
                fmt!("struct ID not bound to an item: %s",
-                    ast_map::node_id_to_str(cx.items, did.node,
+                    ast_map::node_id_to_str(*cx.items, did.node,
                                             cx.sess.parse_sess.interner)));
        }
     }
@@ -4188,7 +4188,7 @@ pub fn normalize_ty(cx: ctxt, t: t) -> t {
     }
 
     match cx.normalized_cache.find(&t) {
-      Some(t) => return t,
+      Some(t) => return *t,
       None => ()
     }
 
@@ -4312,7 +4312,7 @@ pub fn iter_bound_traits_and_supertraits(tcx: ctxt,
             }
         };
 
-        let mut supertrait_map = HashMap();
+        let mut supertrait_map = @mut LinearMap::new();
         let mut seen_def_ids = ~[];
         let mut i = 0;
         let trait_ty_id = ty_to_def_id(bound_trait_ty).expect(

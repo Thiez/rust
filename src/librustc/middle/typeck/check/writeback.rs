@@ -28,7 +28,7 @@ use util::ppaux;
 
 use core::result::{Result, Ok, Err};
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast;
 use syntax::codemap::span;
 use syntax::print::pprust::pat_to_str;
@@ -56,7 +56,7 @@ fn resolve_method_map_entry(fcx: @mut FnCtxt, sp: span, id: ast::node_id) {
     // Resolve any method map entry
     match fcx.ccx.method_map.find(&id) {
         None => {}
-        Some(ref mme) => {
+        Some(mme) => {
             for resolve_type_vars_in_type(fcx, sp, mme.self_arg.ty).each |t| {
                 let method_map = fcx.ccx.method_map;
                 method_map.insert(id,
@@ -101,7 +101,7 @@ fn resolve_type_vars_for_node(wbcx: @mut WbCtxt, sp: span, id: ast::node_id)
 
             let resolved_adj = @ty::AutoAdjustment {
                 autoref: resolved_autoref,
-                ..*adj};
+                ..**adj};
             debug!("Adjustments for node %d: %?", id, resolved_adj);
             fcx.tcx().adjustments.insert(id, resolved_adj);
         }

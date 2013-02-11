@@ -31,11 +31,11 @@ use core::os;
 use core::result::{Ok, Err};
 use core::str;
 use core::vec;
+use core::hashmap::linear::LinearMap;
 use std::getopts::groups::{optopt, optmulti, optflag, optflagopt, getopts};
 use std::getopts::groups;
 use std::getopts::{opt_present};
 use std::getopts;
-use std::oldmap::HashMap;
 use std;
 use syntax::ast;
 use syntax::ast_map;
@@ -223,7 +223,7 @@ pub fn compile_upto(sess: Session, cfg: ast::crate_cfg,
     time(time_passes, ~"building lint settings table", ||
         lint::build_settings_crate(sess, crate));
 
-    let ast_map = time(time_passes, ~"ast indexing", ||
+    let ast_map = @mut time(time_passes, ~"ast indexing", ||
             syntax::ast_map::map_crate(sess.diagnostic(), *crate));
 
     time(time_passes, ~"external crate/lib resolution", ||

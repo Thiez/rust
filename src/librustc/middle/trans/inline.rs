@@ -32,18 +32,18 @@ pub fn maybe_instantiate_inline(ccx: @crate_ctxt, fn_id: ast::def_id,
     -> ast::def_id {
     let _icx = ccx.insn_ctxt("maybe_instantiate_inline");
     match ccx.external.find(&fn_id) {
-      Some(Some(node_id)) => {
+      Some(&Some(node_id)) => {
         // Already inline
         debug!("maybe_instantiate_inline(%s): already inline as node id %d",
                ty::item_path_str(ccx.tcx, fn_id), node_id);
         local_def(node_id)
       }
-      Some(None) => fn_id, // Not inlinable
+      Some(&None) => fn_id, // Not inlinable
       None => { // Not seen yet
         match csearch::maybe_get_item_ast(
             ccx.tcx, fn_id,
             |a,b,c,d| {
-                astencode::decode_inlined_item(a, b, ccx.maps,
+                astencode::decode_inlined_item(a, b, *ccx.maps,
                                                /*bad*/ copy c, d)
             }) {
 

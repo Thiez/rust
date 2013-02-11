@@ -164,7 +164,7 @@ use util::common::indenter;
 
 use core::dvec::DVec;
 use core::dvec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::def_id;
 use syntax::ast;
 use syntax::ast_util::{dummy_sp, path_to_ident};
@@ -283,7 +283,7 @@ pub fn trans_opt(bcx: block, o: &Opt) -> opt_result {
 
 pub fn variant_opt(tcx: ty::ctxt, pat_id: ast::node_id) -> Opt {
     match tcx.def_map.get(&pat_id) {
-        ast::def_variant(enum_id, var_id) => {
+        &ast::def_variant(enum_id, var_id) => {
             let variants = ty::enum_variants(tcx, enum_id);
             for vec::each(*variants) |v| {
                 if var_id == v.id {
@@ -292,7 +292,7 @@ pub fn variant_opt(tcx: ty::ctxt, pat_id: ast::node_id) -> Opt {
             }
             ::core::util::unreachable();
         }
-        ast::def_struct(_) => {
+        &ast::def_struct(_) => {
             return lit(UnitLikeStructLit(pat_id));
         }
         _ => {
@@ -322,7 +322,7 @@ pub struct BindingInfo {
     ty: ty::t,
 }
 
-pub type BindingsMap = HashMap<ident, BindingInfo>;
+pub type BindingsMap = @mut LinearMap<ident, BindingInfo>;
 
 pub struct ArmData {
     bodycx: block,
@@ -519,7 +519,7 @@ pub fn enter_opt(bcx: block, m: &[@Match/&r], opt: &Opt, col: uint,
                 }
             }
             ast::pat_ident(_, _, None) if pat_is_const(tcx.def_map, p) => {
-                let const_def = tcx.def_map.get(&p.id);
+                let const_def = *tcx.def_map.get(&p.id);
                 let const_def_id = ast_util::def_id_of_def(const_def);
                 if opt_eq(tcx, &lit(ConstLit(const_def_id)), opt) {
                     Some(~[])
@@ -538,7 +538,7 @@ pub fn enter_opt(bcx: block, m: &[@Match/&r], opt: &Opt, col: uint,
                     // Look up the struct variant ID.
                     let struct_id;
                     match tcx.def_map.get(&p.id) {
-                        ast::def_variant(_, found_struct_id) => {
+                        &ast::def_variant(_, found_struct_id) => {
                             struct_id = found_struct_id;
                         }
                         _ => {
@@ -776,15 +776,15 @@ pub fn get_options(ccx: @crate_ctxt, m: &[@Match], col: uint) -> ~[Opt] {
                 // This is one of: an enum variant, a unit-like struct, or a
                 // variable binding.
                 match ccx.tcx.def_map.find(&cur.id) {
-                    Some(ast::def_variant(*)) => {
+                    Some(&ast::def_variant(*)) => {
                         add_to_set(ccx.tcx, &found,
                                    variant_opt(ccx.tcx, cur.id));
                     }
-                    Some(ast::def_struct(*)) => {
+                    Some(&ast::def_struct(*)) => {
                         add_to_set(ccx.tcx, &found,
                                    lit(UnitLikeStructLit(cur.id)));
                     }
-                    Some(ast::def_const(const_did)) => {
+                    Some(&ast::def_const(const_did)) => {
                         add_to_set(ccx.tcx, &found,
                                    lit(ConstLit(const_did)));
                     }
@@ -795,7 +795,7 @@ pub fn get_options(ccx: @crate_ctxt, m: &[@Match], col: uint) -> ~[Opt] {
                 // This could be one of: a tuple-like enum variant, a
                 // struct-like enum variant, or a struct.
                 match ccx.tcx.def_map.find(&cur.id) {
-                    Some(ast::def_variant(*)) => {
+                    Some(&ast::def_variant(*)) => {
                         add_to_set(ccx.tcx, &found,
                                    variant_opt(ccx.tcx, cur.id));
                     }
@@ -936,7 +936,7 @@ pub fn root_pats_as_necessary(bcx: block,
 
                 let datum = Datum {val: val, ty: node_id_type(bcx, pat_id),
                                    mode: ByRef, source: ZeroMem};
-                bcx = datum.root(bcx, root_info);
+                bcx = datum.root(bcx, *root_info);
                 // If we kept going, we'd only re-root the same value, so
                 // return now.
                 return bcx;
@@ -983,7 +983,7 @@ pub fn any_tuple_struct_pat(bcx: block, m: &[@Match], col: uint) -> bool {
         match pat.node {
             ast::pat_enum(_, Some(_)) => {
                 match bcx.tcx().def_map.find(&pat.id) {
-                    Some(ast::def_struct(*)) => true,
+                    Some(&ast::def_struct(*)) => true,
                     _ => false
                 }
             }
@@ -1585,7 +1585,7 @@ pub fn trans_match_inner(scope_cx: block,
         // to an alloca() that will be the value for that local variable.
         // Note that we use the names because each binding will have many ids
         // from the various alternatives.
-        let bindings_map = HashMap();
+        let bindings_map = @mut LinearMap::new();
         do pat_bindings(tcx.def_map, arm.pats[0]) |bm, p_id, _s, path| {
             let ident = path_to_ident(path);
             let variable_ty = node_id_type(bcx, p_id);
@@ -1730,8 +1730,8 @@ pub fn bind_irrefutable_pat(bcx: block,
         }
         ast::pat_enum(_, sub_pats) => {
             match bcx.tcx().def_map.find(&pat.id) {
-                Some(ast::def_variant(*)) => {
-                    let pat_def = ccx.tcx.def_map.get(&pat.id);
+                Some(&ast::def_variant(*)) => {
+                    let pat_def = *ccx.tcx.def_map.get(&pat.id);
                     let vdefs = ast_util::variant_def_ids(pat_def);
                     let args = extract_variant_args(bcx, pat.id, vdefs, val);
                     for sub_pats.each |sub_pat| {
@@ -1744,7 +1744,7 @@ pub fn bind_irrefutable_pat(bcx: block,
                         }
                     }
                 }
-                Some(ast::def_struct(*)) => {
+                Some(&ast::def_struct(*)) => {
                     match sub_pats {
                         None => {
                             // This is a unit-like struct. Nothing to do here.

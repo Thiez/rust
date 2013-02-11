@@ -73,7 +73,7 @@ pub fn monomorphic_fn(ccx: @crate_ctxt,
       Some(val) => {
         debug!("leaving monomorphic fn %s",
                ty::item_path_str(ccx.tcx, fn_id));
-        return {val: val, must_cast: must_cast};
+        return {val: *val, must_cast: must_cast};
       }
       None => ()
     }
@@ -136,7 +136,10 @@ pub fn monomorphic_fn(ccx: @crate_ctxt,
 
     ccx.stats.n_monos += 1;
 
-    let depth = option::get_or_default(ccx.monomorphizing.find(&fn_id), 0u);
+    let depth = match ccx.monomorphizing.find(&fn_id) {
+        Some(t) => *t,
+        None => 0u
+    };
     // Random cut-off -- code that needs to instantiate the same function
     // recursively more than ten times can probably safely be assumed to be
     // causing an infinite expansion.

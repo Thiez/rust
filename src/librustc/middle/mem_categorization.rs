@@ -316,7 +316,7 @@ pub impl &mem_categorization_ctxt {
                     }
                     None => {
                         // Equivalent to *expr or something similar.
-                        self.cat_expr_autoderefd(expr, adjustment)
+                        self.cat_expr_autoderefd(expr, *adjustment)
                     }
                 }
             }
@@ -367,7 +367,7 @@ pub impl &mem_categorization_ctxt {
           }
 
           ast::expr_path(_) => {
-            let def = self.tcx.def_map.get(&expr.id);
+            let def = *self.tcx.def_map.get(&expr.id);
             self.cat_def(expr.id, expr.span, expr_ty, def)
           }
 
@@ -828,14 +828,14 @@ pub impl &mem_categorization_ctxt {
           }
           ast::pat_enum(_, Some(ref subpats)) => {
             match self.tcx.def_map.find(&pat.id) {
-                Some(ast::def_variant(enum_did, _)) => {
+                Some(&ast::def_variant(enum_did, _)) => {
                     // variant(x, y, z)
                     for subpats.each |subpat| {
                         let subcmt = self.cat_variant(*subpat, enum_did, cmt);
                         self.cat_pattern(subcmt, *subpat, op);
                     }
                 }
-                Some(ast::def_struct(*)) => {
+                Some(&ast::def_struct(*)) => {
                     for subpats.each |subpat| {
                         let cmt_field = self.cat_anon_struct_field(*subpat,
                                                                    cmt);
@@ -1051,7 +1051,7 @@ pub fn field_mutbl(tcx: ty::ctxt,
       }
       ty::ty_enum(*) => {
         match tcx.def_map.get(&node_id) {
-          ast::def_variant(_, variant_id) => {
+          &ast::def_variant(_, variant_id) => {
             for ty::lookup_struct_fields(tcx, variant_id).each |fld| {
                 if fld.ident == f_name {
                     let m = match fld.mutability {

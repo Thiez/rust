@@ -216,11 +216,11 @@ pub fn ast_ty_to_ty<AC: AstConv, RS: region_scope Copy Durable>(
             }
             ast::ty_path(path, id) if a_seq_ty.mutbl == ast::m_imm => {
                 match tcx.def_map.find(&id) {
-                    Some(ast::def_prim_ty(ast::ty_str)) => {
+                    Some(&ast::def_prim_ty(ast::ty_str)) => {
                         check_path_args(tcx, path, NO_TPS | NO_REGIONS);
                         return ty::mk_estr(tcx, vst);
                     }
-                    Some(ast::def_ty(type_def_id)) => {
+                    Some(&ast::def_ty(type_def_id)) => {
                         let result = ast_path_to_substs_and_ty(
                             self, rscope,
                             type_def_id, path);
@@ -278,8 +278,8 @@ pub fn ast_ty_to_ty<AC: AstConv, RS: region_scope Copy Durable>(
     let tcx = self.tcx();
 
     match tcx.ast_ty_to_ty_cache.find(&ast_ty) {
-      Some(ty::atttce_resolved(ty)) => return ty,
-      Some(ty::atttce_unresolved) => {
+      Some(&ty::atttce_resolved(ty)) => return ty,
+      Some(&ty::atttce_unresolved) => {
         tcx.sess.span_fatal(ast_ty.span, ~"illegal recursive type; \
                                           insert an enum in the cycle, \
                                           if this is desired");
@@ -344,10 +344,10 @@ pub fn ast_ty_to_ty<AC: AstConv, RS: region_scope Copy Durable>(
           Some(d) => d
         };
         match a_def {
-          ast::def_ty(did) | ast::def_struct(did) => {
+          &ast::def_ty(did) | &ast::def_struct(did) => {
             ast_path_to_ty(self, rscope, did, path, id).ty
           }
-          ast::def_prim_ty(nty) => {
+          &ast::def_prim_ty(nty) => {
             match nty {
               ast::ty_bool => {
                 check_path_args(tcx, path, NO_TPS | NO_REGIONS);
@@ -373,11 +373,11 @@ pub fn ast_ty_to_ty<AC: AstConv, RS: region_scope Copy Durable>(
               }
             }
           }
-          ast::def_ty_param(id, n) => {
+          &ast::def_ty_param(id, n) => {
             check_path_args(tcx, path, NO_TPS | NO_REGIONS);
             ty::mk_param(tcx, n, id)
           }
-          ast::def_self_ty(_) => {
+          &ast::def_self_ty(_) => {
             // n.b.: resolve guarantees that the self type only appears in a
             // trait, which we rely upon in various places when creating
             // substs

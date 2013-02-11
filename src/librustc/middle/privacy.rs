@@ -60,7 +60,7 @@ pub fn check_crate(tcx: ty::ctxt,
             |span, enum_id| {
         let variant_info = ty::enum_variants(tcx, enum_id)[0];
         let parental_privacy = if is_local(enum_id) {
-            let parent_vis = ast_map::node_item_query(tcx.items, enum_id.node,
+            let parent_vis = ast_map::node_item_query(*tcx.items, enum_id.node,
                                    |it| { it.vis },
                                    ~"unbound enum parent when checking \
                                     dereference of enum type");
@@ -227,10 +227,10 @@ pub fn check_crate(tcx: ty::ctxt,
                                             field access");
                                     check_field(expr.span, id, ident);
                                 }
-                                Some(ref entry) => {
+                                Some(entry) => {
                                     debug!("(privacy checking) checking \
                                             impl method");
-                                    check_method(expr.span, &(*entry).origin);
+                                    check_method(expr.span, &entry.origin);
                                 }
                             }
                         }
@@ -250,10 +250,10 @@ pub fn check_crate(tcx: ty::ctxt,
                                                       ~"method call not in \
                                                         method map");
                                 }
-                                Some(ref entry) => {
+                                Some(entry) => {
                                     debug!("(privacy checking) checking \
                                             impl method");
-                                    check_method(expr.span, &(*entry).origin);
+                                    check_method(expr.span, &entry.origin);
                                 }
                             }
                         }
@@ -277,7 +277,7 @@ pub fn check_crate(tcx: ty::ctxt,
                             if id.crate != local_crate ||
                                     !privileged_items.contains(&(id.node)) {
                                 match tcx.def_map.get(&expr.id) {
-                                    def_variant(_, variant_id) => {
+                                    &def_variant(_, variant_id) => {
                                         for (*fields).each |field| {
                                                 debug!("(privacy checking) \
                                                         checking field in \
@@ -344,7 +344,7 @@ pub fn check_crate(tcx: ty::ctxt,
                                     !privileged_items.contains(
                                         &enum_id.node) {
                                 match tcx.def_map.find(&pattern.id) {
-                                    Some(def_variant(_, variant_id)) => {
+                                    Some(&def_variant(_, variant_id)) => {
                                         for fields.each |field| {
                                             debug!("(privacy checking) \
                                                     checking field in \

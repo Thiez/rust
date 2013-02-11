@@ -715,8 +715,8 @@ fn trans_lvalue_unadjusted(bcx: block, expr: @ast::expr) -> DatumBlock {
     // the lvalue in there, and then arrange for it to be cleaned up
     // at the end of the scope with id `scope_id`:
     let root_key = root_map_key { id: expr.id, derefs: 0u };
-    for bcx.ccx().maps.root_map.find(&root_key).each |&root_info| {
-        bcx = unrooted_datum.root(bcx, root_info);
+    for bcx.ccx().maps.root_map.find(&root_key).each |root_info| {
+        bcx = unrooted_datum.root(bcx, **root_info);
     }
 
     return DatumBlock {bcx: bcx, datum: unrooted_datum};
@@ -910,7 +910,7 @@ pub fn trans_local_var(bcx: block, def: ast::def) -> Datum {
             match bcx.fcx.llupvars.find(&nid) {
                 Some(val) => {
                     Datum {
-                        val: val,
+                        val: *val,
                         ty: local_ty,
                         mode: ByRef,
                         source: ZeroMem
@@ -923,10 +923,10 @@ pub fn trans_local_var(bcx: block, def: ast::def) -> Datum {
             }
         }
         ast::def_arg(nid, _, _) => {
-            take_local(bcx, bcx.fcx.llargs, nid)
+            take_local(bcx, *bcx.fcx.llargs, nid)
         }
         ast::def_local(nid, _) | ast::def_binding(nid, _) => {
-            take_local(bcx, bcx.fcx.lllocals, nid)
+            take_local(bcx, *bcx.fcx.lllocals, nid)
         }
         ast::def_self(nid, _) => {
             let self_info: ValSelfData = match bcx.fcx.llself {
@@ -958,11 +958,11 @@ pub fn trans_local_var(bcx: block, def: ast::def) -> Datum {
     };
 
     fn take_local(bcx: block,
-                  table: HashMap<ast::node_id, local_val>,
+                  table: LinearMap<ast::node_id, local_val>,
                   nid: ast::node_id) -> Datum {
         let (v, mode) = match table.find(&nid) {
-            Some(local_mem(v)) => (v, ByRef),
-            Some(local_imm(v)) => (v, ByValue),
+            Some(&local_mem(v)) => (v, ByRef),
+            Some(&local_imm(v)) => (v, ByValue),
             None => {
                 bcx.sess().bug(fmt!(
                     "trans_local_var: no llval for local/arg %? found", nid));
@@ -1040,7 +1040,7 @@ pub fn with_field_tys<R>(tcx: ty::ctxt,
                 }
                 Some(node_id) => {
                     match tcx.def_map.get(&node_id) {
-                        ast::def_variant(_, variant_id) => {
+                        &ast::def_variant(_, variant_id) => {
                             op(false, struct_mutable_fields(
                                 tcx, variant_id, substs))
                         }
@@ -1094,7 +1094,7 @@ fn trans_rec_or_struct(bcx: block,
     let addr = match ty::get(ty).sty {
         ty::ty_enum(_, ref substs) => {
             match tcx.def_map.get(&id) {
-                ast::def_variant(enum_id, variant_id) => {
+                &ast::def_variant(enum_id, variant_id) => {
                     let variant_info = ty::enum_variant_with_id(
                         tcx, enum_id, variant_id);
                     let addr = if ty::enum_is_univariant(tcx, enum_id) {
@@ -1466,7 +1466,7 @@ fn trans_overloaded_op(bcx: block,
                        dest: Dest,
                        +autoref_arg: AutorefArg) -> block
 {
-    let origin = bcx.ccx().maps.method_map.get(&expr.id);
+    let origin = *bcx.ccx().maps.method_map.get(&expr.id);
     let fty = node_id_type(bcx, expr.callee_id);
     return callee::trans_call_inner(
         bcx, expr.info(), fty,

@@ -101,7 +101,7 @@ use core::dvec::DVec;
 use core::result;
 use core::uint;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::{def_id, sty_by_ref, sty_value, sty_region, sty_box};
 use syntax::ast::{sty_uniq, sty_static, node_id, by_copy, by_ref};
 use syntax::ast::{m_const, m_mutbl, m_imm};
@@ -124,14 +124,14 @@ pub fn lookup(
     deref_args: check::DerefArgs)   // Whether we autopointer first.
     -> Option<method_map_entry>
 {
-    let lcx = LookupContext {
+    let mut lcx = LookupContext {
         fcx: fcx,
         expr: expr,
         self_expr: self_expr,
         callee_id: callee_id,
         m_name: m_name,
         supplied_tps: supplied_tps,
-        impl_dups: HashMap(),
+        impl_dups: LinearMap::new(),
         inherent_candidates: DVec(),
         extension_candidates: DVec(),
         deref_args: deref_args,
@@ -149,7 +149,7 @@ pub struct LookupContext {
     callee_id: node_id,
     m_name: ast::ident,
     supplied_tps: &[ty::t],
-    impl_dups: HashMap<def_id, ()>,
+    impl_dups: LinearMap<def_id, ()>,
     inherent_candidates: DVec<Candidate>,
     extension_candidates: DVec<Candidate>,
     deref_args: check::DerefArgs,
@@ -182,7 +182,7 @@ pub enum TransformTypeFlag {
 }
 
 pub impl LookupContext {
-    fn do_lookup(&self, self_ty: ty::t) -> Option<method_map_entry> {
+    fn do_lookup(&mut self, self_ty: ty::t) -> Option<method_map_entry> {
         debug!("do_lookup(self_ty=%s, expr=%s, self_expr=%s)",
                self.ty_to_str(self_ty),
                expr_repr(self.tcx(), self.expr),
@@ -267,7 +267,7 @@ pub impl LookupContext {
     // ______________________________________________________________________
     // Candidate collection (see comment at start of file)
 
-    fn push_inherent_candidates(&self, self_ty: ty::t) {
+    fn push_inherent_candidates(&mut self, self_ty: ty::t) {
         /*!
          *
          * Collect all inherent candidates into
@@ -319,7 +319,7 @@ pub impl LookupContext {
         }
     }
 
-    fn push_extension_candidates(&self, self_ty: ty::t) {
+    fn push_extension_candidates(&mut self, self_ty: ty::t) {
         // If the method being called is associated with a trait, then
         // find all the impls of that trait.  Each of those are
         // candidates.
@@ -344,7 +344,7 @@ pub impl LookupContext {
                     Some(methods) => {
                         self.push_candidates_from_provided_methods(
                             &self.extension_candidates, self_ty, *trait_did,
-                            methods);
+                            *methods);
                     }
                     None => {}
                 }
@@ -352,7 +352,7 @@ pub impl LookupContext {
         }
     }
 
-    fn push_inherent_candidates_from_param(&self,
+    fn push_inherent_candidates_from_param(&mut self,
                                            rcvr_ty: ty::t,
                                            param_ty: param_ty) {
         debug!("push_inherent_candidates_from_param(param_ty=%?)",
@@ -361,7 +361,7 @@ pub impl LookupContext {
 
         let tcx = self.tcx();
         let mut next_bound_idx = 0; // count only trait bounds
-        let bounds = tcx.ty_param_bounds.get(&param_ty.def_id.node);
+        let bounds = *tcx.ty_param_bounds.get(&param_ty.def_id.node);
 
         for vec::each(*bounds) |bound| {
             let bound_trait_ty = match *bound {
@@ -481,7 +481,7 @@ pub impl LookupContext {
         }
     }
 
-    fn push_inherent_candidates_from_trait(&self,
+    fn push_inherent_candidates_from_trait(&mut self,
                                            self_ty: ty::t,
                                            did: def_id,
                                            substs: &ty::substs,
@@ -538,7 +538,7 @@ pub impl LookupContext {
         });
     }
 
-    fn push_inherent_candidates_from_self(&self,
+    fn push_inherent_candidates_from_self(&mut self,
                                           self_ty: ty::t,
                                           did: def_id,
                                           substs: &ty::substs) {
@@ -606,7 +606,7 @@ pub impl LookupContext {
         }
     }
 
-    fn push_inherent_impl_candidates_for_type(did: def_id) {
+    fn push_inherent_impl_candidates_for_type(&mut self, did: def_id) {
         let opt_impl_infos =
             self.fcx.ccx.coherence_info.inherent_methods.find(&did);
         for opt_impl_infos.each |impl_infos| {
@@ -617,7 +617,7 @@ pub impl LookupContext {
         }
     }
 
-    fn push_candidates_from_impl(&self, candidates: &DVec<Candidate>,
+    fn push_candidates_from_impl(&mut self, candidates: &DVec<Candidate>,
                                  impl_info: &resolve::Impl) {
         if !self.impl_dups.insert(impl_info.did, ()) {
             return; // already visited
@@ -662,7 +662,7 @@ pub impl LookupContext {
     }
 
     fn push_candidates_from_provided_methods(
-            &self,
+            &mut self,
             candidates: &DVec<Candidate>,
             self_ty: ty::t,
             trait_def_id: def_id,

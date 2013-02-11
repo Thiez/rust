@@ -23,7 +23,7 @@ use core::cmp;
 use core::option;
 use core::uint;
 use core::vec;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use std::sort;
 use syntax::ast::*;
 use syntax::ast_util::{variant_def_ids, unguarded_pat, walk_pat};
@@ -293,8 +293,8 @@ pub fn pat_ctor_id(cx: @MatchCheckCtxt, p: @pat) -> Option<ctor> {
       pat_wild => { None }
       pat_ident(_, _, _) | pat_enum(_, _) => {
         match cx.tcx.def_map.find(&pat.id) {
-          Some(def_variant(_, id)) => Some(variant(id)),
-          Some(def_const(did)) => {
+          Some(&def_variant(_, id)) => Some(variant(id)),
+          Some(&def_const(did)) => {
             let const_expr = lookup_const_by_id(cx.tcx, did).get();
             Some(val(eval_const_expr(cx.tcx, const_expr)))
           }
@@ -307,7 +307,7 @@ pub fn pat_ctor_id(cx: @MatchCheckCtxt, p: @pat) -> Option<ctor> {
       }
       pat_struct(*) => {
         match cx.tcx.def_map.find(&pat.id) {
-          Some(def_variant(_, id)) => Some(variant(id)),
+          Some(&def_variant(_, id)) => Some(variant(id)),
           _ => Some(single)
         }
       }
@@ -330,7 +330,7 @@ pub fn is_wild(cx: @MatchCheckCtxt, p: @pat) -> bool {
       pat_wild => { true }
       pat_ident(_, _, _) => {
         match cx.tcx.def_map.find(&pat.id) {
-          Some(def_variant(_, _)) | Some(def_const(*)) => { false }
+          Some(&def_variant(_, _)) | Some(&def_const(*)) => { false }
           _ => { true }
         }
       }
@@ -481,11 +481,11 @@ pub fn specialize(cx: @MatchCheckCtxt,
                                          vec::tail(r))),
             pat_ident(_, _, _) => {
                 match cx.tcx.def_map.find(&pat_id) {
-                    Some(def_variant(_, id)) => {
+                    Some(&def_variant(_, id)) => {
                         if variant(id) == ctor_id { Some(vec::tail(r)) }
                         else { None }
                     }
-                    Some(def_const(did)) => {
+                    Some(&def_const(did)) => {
                         let const_expr =
                             lookup_const_by_id(cx.tcx, did).get();
                         let e_v = eval_const_expr(cx.tcx, const_expr);
@@ -506,15 +506,15 @@ pub fn specialize(cx: @MatchCheckCtxt,
             }
             pat_enum(_, args) => {
                 match cx.tcx.def_map.get(&pat_id) {
-                    def_variant(_, id) if variant(id) == ctor_id => {
+                    &def_variant(_, id) if variant(id) == ctor_id => {
                         let args = match args {
                             Some(args) => args,
                             None => vec::from_elem(arity, wild())
                         };
                         Some(vec::append(args, vec::tail(r)))
                     }
-                    def_variant(_, _) => None,
-                    def_struct(*) => {
+                    &def_variant(_, _) => None,
+                    &def_struct(*) => {
                         // FIXME #4731: Is this right? --pcw
                         let new_args;
                         match args {
@@ -542,7 +542,7 @@ pub fn specialize(cx: @MatchCheckCtxt,
             pat_struct(_, ref flds, _) => {
                 // Is this a struct or an enum variant?
                 match cx.tcx.def_map.get(&pat_id) {
-                    def_variant(_, variant_id) => {
+                    &def_variant(_, variant_id) => {
                         if variant(variant_id) == ctor_id {
                             // FIXME #4731: Is this right? --pcw
                             let args = flds.map(|ty_field| {
@@ -679,12 +679,12 @@ pub fn check_fn(cx: @MatchCheckCtxt,
 
 pub fn is_refutable(cx: @MatchCheckCtxt, pat: &pat) -> bool {
     match cx.tcx.def_map.find(&pat.id) {
-      Some(def_variant(enum_id, _)) => {
+      Some(&def_variant(enum_id, _)) => {
         if vec::len(*ty::enum_variants(cx.tcx, enum_id)) != 1u {
             return true;
         }
       }
-      Some(def_const(*)) => return true,
+      Some(&def_const(*)) => return true,
       _ => ()
     }
 

@@ -65,10 +65,9 @@ use core::dvec::DVec;
 use core::result::Result;
 use core::result;
 use core::vec;
+use core::hashmap::linear::LinearMap;
 use std::list::{List, Nil, Cons};
 use std::list;
-use std::oldmap::HashMap;
-use std::oldmap;
 use std::oldsmallintmap;
 use syntax::ast::{provided, required};
 use syntax::ast_map::node_id_to_str;
@@ -143,7 +142,7 @@ pub struct method_map_entry {
 
 // maps from an expression id that corresponds to a method call to the details
 // of the method to be invoked
-pub type method_map = HashMap<ast::node_id, method_map_entry>;
+pub type method_map = @mut LinearMap<ast::node_id, method_map_entry>;
 
 // Resolutions for bounds of all parameters, left to right, for a given path.
 pub type vtable_res = @~[vtable_origin];
@@ -194,7 +193,7 @@ pub impl vtable_origin {
     }
 }
 
-pub type vtable_map = HashMap<ast::node_id, vtable_res>;
+pub type vtable_map = @mut LinearMap<ast::node_id, vtable_res>;
 
 pub struct CrateCtxt {
     // A mapping from method call sites to traits that have that method.
@@ -222,7 +221,7 @@ pub fn write_substs_to_tcx(tcx: ty::ctxt,
 
 pub fn lookup_def_tcx(tcx: ty::ctxt, sp: span, id: ast::node_id) -> ast::def {
     match tcx.def_map.find(&id) {
-      Some(x) => x,
+      Some(x) => *x,
       _ => {
         tcx.sess.span_fatal(sp, ~"internal error looking up a definition")
       }
@@ -371,8 +370,8 @@ pub fn check_crate(tcx: ty::ctxt,
                 -> (method_map, vtable_map) {
     let ccx = @mut CrateCtxt {
         trait_map: trait_map,
-        method_map: oldmap::HashMap(),
-        vtable_map: oldmap::HashMap(),
+        method_map: @mut LinearMap::new(),
+        vtable_map: @mut LinearMap::new(),
         coherence_info: @coherence::CoherenceInfo(),
         tcx: tcx
     };

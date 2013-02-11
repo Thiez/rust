@@ -38,7 +38,7 @@ use core::uint;
 use core::vec;
 use std::list::{List, Cons, Nil};
 use std::list;
-use std::oldmap::HashMap;
+use core::hashmap::linear::LinearMap;
 use syntax::ast::*;
 use syntax::ast_map;
 use syntax::ast_util;
@@ -54,7 +54,7 @@ pub type ctx = {ccx: @crate_ctxt, uses: ~[mut type_uses]};
 pub fn type_uses_for(ccx: @crate_ctxt, fn_id: def_id, n_tps: uint)
     -> ~[type_uses] {
     match ccx.type_use_cache.find(&fn_id) {
-      Some(uses) => return uses,
+      Some(uses) => return copy *uses,
       None => ()
     }
 
@@ -164,7 +164,7 @@ pub fn type_uses_for(ccx: @crate_ctxt, fn_id: def_id, n_tps: uint)
       _ => {
         ccx.tcx.sess.bug(fmt!("unknown node type in type_use: %s",
                               ast_map::node_id_to_str(
-                                ccx.tcx.items,
+                                *ccx.tcx.items,
                                 fn_id_loc.node,
                                 ccx.tcx.sess.parse_sess.interner)));
       }
@@ -236,7 +236,7 @@ pub fn mark_for_method_call(cx: ctx, e_id: node_id, callee_id: node_id) {
           typeck::method_static(did) => {
             do cx.ccx.tcx.node_type_substs.find(&callee_id).iter |ts| {
                 let type_uses = type_uses_for(cx.ccx, did, ts.len());
-                for vec::each2(type_uses, *ts) |uses, subst| {
+                for vec::each2(type_uses, **ts) |uses, subst| {
                     type_needs(cx, *uses, *subst)
                 }
             }
@@ -284,9 +284,9 @@ pub fn mark_for_expr(cx: ctx, e: @expr) {
       }
       expr_path(_) => {
         do cx.ccx.tcx.node_type_substs.find(&e.id).iter |ts| {
-            let id = ast_util::def_id_of_def(cx.ccx.tcx.def_map.get(&e.id));
+            let id = ast_util::def_id_of_def(*cx.ccx.tcx.def_map.get(&e.id));
             let uses_for_ts = type_uses_for(cx.ccx, id, ts.len());
-            for vec::each2(uses_for_ts, *ts) |uses, subst| {
+            for vec::each2(uses_for_ts, **ts) |uses, subst| {
                 type_needs(cx, *uses, *subst)
             }
         }

@@ -31,9 +31,8 @@ use util::common::indenter;
 use util::ppaux::{expr_repr, region_to_str};
 
 use core::dvec;
-use core::hashmap::linear::LinearSet;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use core::vec;
-use std::oldmap::HashMap;
 use syntax::ast::{m_const, m_imm, m_mutbl};
 use syntax::ast;
 use syntax::codemap::span;
@@ -79,7 +78,7 @@ struct GatherLoanCtxt {
 pub fn gather_loans(bccx: @BorrowckCtxt, crate: @ast::crate) -> req_maps {
     let glcx = @mut GatherLoanCtxt {
         bccx: bccx,
-        req_maps: {req_loan_map: HashMap(), pure_map: HashMap()},
+        req_maps: {req_loan_map: @mut LinearMap::new(), pure_map: @mut LinearMap::new()},
         item_ub: 0,
         root_ub: 0,
         ignore_adjustments: LinearSet::new()
@@ -130,7 +129,7 @@ fn req_loans_in_expr(ex: @ast::expr,
     // If this expression is borrowed, have to ensure it remains valid:
     if !self.ignore_adjustments.contains(&ex.id) {
         for tcx.adjustments.find(&ex.id).each |adjustments| {
-            self.guarantee_adjustments(ex, *adjustments);
+            self.guarantee_adjustments(ex, **adjustments);
         }
     }
 
@@ -253,7 +252,7 @@ fn req_loans_in_expr(ex: @ast::expr,
         // (if used like `a.b(...)`), the call where it's an argument
         // (if used like `x(a.b)`), or the block (if used like `let x
         // = a.b`).
-        let scope_r = ty::re_scope(self.tcx().region_map.get(&ex.id));
+        let scope_r = ty::re_scope(*self.tcx().region_map.get(&ex.id));
         let rcvr_cmt = self.bccx.cat_expr(rcvr);
         self.guarantee_valid(rcvr_cmt, m_imm, scope_r);
         visit::visit_expr(ex, self, vt);

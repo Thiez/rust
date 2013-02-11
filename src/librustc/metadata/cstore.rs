@@ -21,8 +21,7 @@ use metadata::decoder;
 use core::option;
 use core::str;
 use core::vec;
-use std::oldmap::HashMap;
-use std::oldmap;
+use core::hashmap::linear::LinearMap;
 use std;
 use syntax::{ast, attr};
 use syntax::parse::token::ident_interner;
@@ -31,7 +30,7 @@ use syntax::parse::token::ident_interner;
 // local crate numbers (as generated during this session). Each external
 // crate may refer to types in other external crates, and each has their
 // own crate numbers.
-pub type cnum_map = oldmap::HashMap<ast::crate_num, ast::crate_num>;
+pub type cnum_map = @mut LinearMap<ast::crate_num, ast::crate_num>;
 
 pub type crate_metadata = @{name: ~str,
                             data: @~[u8],
@@ -39,7 +38,7 @@ pub type crate_metadata = @{name: ~str,
                             cnum: ast::crate_num};
 
 pub struct CStore {
-    priv metas: oldmap::HashMap<ast::crate_num, crate_metadata>,
+    priv metas: @mut LinearMap<ast::crate_num, crate_metadata>,
     priv use_crate_map: use_crate_map,
     priv used_crate_files: ~[Path],
     priv used_libraries: ~[~str],
@@ -48,11 +47,11 @@ pub struct CStore {
 }
 
 // Map from node_id's of local use statements to crate numbers
-type use_crate_map = oldmap::HashMap<ast::node_id, ast::crate_num>;
+type use_crate_map = @mut LinearMap<ast::node_id, ast::crate_num>;
 
 pub fn mk_cstore(intr: @ident_interner) -> CStore {
-    let meta_cache = oldmap::HashMap();
-    let crate_map = oldmap::HashMap();
+    let meta_cache = @mut LinearMap::new();
+    let crate_map = @mut LinearMap::new();
     return CStore {
         metas: meta_cache,
         use_crate_map: crate_map,
@@ -65,7 +64,7 @@ pub fn mk_cstore(intr: @ident_interner) -> CStore {
 
 pub fn get_crate_data(cstore: @mut CStore, cnum: ast::crate_num)
                    -> crate_metadata {
-    return cstore.metas.get(&cnum);
+    return *cstore.metas.get(&cnum);
 }
 
 pub fn get_crate_hash(cstore: @mut CStore, cnum: ast::crate_num) -> ~str {
@@ -92,8 +91,8 @@ pub fn have_crate_data(cstore: @mut CStore, cnum: ast::crate_num) -> bool {
 pub fn iter_crate_data(cstore: @mut CStore,
                        i: fn(ast::crate_num, crate_metadata)) {
     let metas = cstore.metas;
-    for metas.each |&k, &v| {
-        i(k, v);
+    for metas.each |&(k, v)| {
+        i(*k, *v);
     }
 }
 
@@ -138,7 +137,7 @@ pub fn find_use_stmt_cnum(cstore: @mut CStore,
                           use_id: ast::node_id)
                        -> Option<ast::crate_num> {
     let use_crate_map = cstore.use_crate_map;
-    use_crate_map.find(&use_id)
+    use_crate_map.find(&use_id).map(|t|{**t})
 }
 
 // returns hashes of crates directly used by this crate. Hashes are
