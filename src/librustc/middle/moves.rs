@@ -217,7 +217,7 @@ use util::ppaux;
 use util::common::indenter;
 
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::ast::*;
 use syntax::ast_util;
 use syntax::visit;
@@ -244,7 +244,7 @@ pub struct CaptureVar {
 
 pub type CaptureMap = @mut LinearMap<node_id, @[CaptureVar]>;
 
-pub type MovesMap = @mut LinearMap<node_id, ()>;
+pub type MovesMap = @mut LinearSet<node_id>;
 
 /**
  * For each variable which will be moved, links to the
@@ -282,7 +282,7 @@ pub fn compute_moves(tcx: ty::ctxt,
         tcx: tcx,
         method_map: method_map,
         move_maps: MoveMaps {
-            moves_map: @mut LinearMap::new(),
+            moves_map: @mut LinearSet::new(),
             variable_moves_map: @mut LinearMap::new(),
             capture_map: @mut LinearMap::new()
         }
@@ -402,7 +402,7 @@ impl VisitContext {
                expr_mode);
 
         match expr_mode {
-            MoveInWhole => { self.move_maps.moves_map.insert(expr.id, ()); }
+            MoveInWhole => { self.move_maps.moves_map.insert(expr.id); }
             MoveInPart(_) | Read => {}
         }
 
@@ -729,7 +729,7 @@ impl VisitContext {
             };
 
             match mode {
-                MoveInWhole => { self.move_maps.moves_map.insert(id, ()); }
+                MoveInWhole => { self.move_maps.moves_map.insert(id); }
                 MoveInPart(_) | Read => {}
             }
         }
@@ -799,7 +799,7 @@ impl VisitContext {
             for arm.pats.each |pat| {
                 let mut found = false;
                 do pat_bindings(self.tcx.def_map, *pat) |_, node_id, _, _| {
-                    if moves_map.contains_key(&node_id) {
+                    if moves_map.contains(&node_id) {
                         found = true;
                     }
                 }

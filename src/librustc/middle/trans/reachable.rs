@@ -22,14 +22,14 @@ use middle::ty;
 use middle::typeck;
 
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::ast::*;
 use syntax::ast_util::def_id_of_def;
 use syntax::attr;
 use syntax::print::pprust::expr_to_str;
 use syntax::{visit, ast_util, ast_map};
 
-pub type map = @mut LinearMap<node_id, ()>;
+pub type map = @mut LinearSet<node_id>;
 
 struct ctx {
     exp_map2: resolve::ExportMap2,
@@ -40,7 +40,7 @@ struct ctx {
 
 pub fn find_reachable(crate_mod: _mod, exp_map2: resolve::ExportMap2,
                       tcx: ty::ctxt, method_map: typeck::method_map) -> map {
-    let rmap = @mut LinearMap::new();
+    let rmap = @mut LinearSet::new();
     let cx = ctx {
         exp_map2: exp_map2,
         tcx: tcx,
@@ -76,10 +76,10 @@ fn traverse_def_id(cx: ctx, did: def_id) {
       &ast_map::node_item(item, _) => traverse_public_item(cx, item),
       &ast_map::node_method(_, impl_id, _) => traverse_def_id(cx, impl_id),
       &ast_map::node_foreign_item(item, _, _) => {
-        cx.rmap.insert(item.id, ());
+        cx.rmap.insert(item.id);
       }
       &ast_map::node_variant(ref v, _, _) => {
-        cx.rmap.insert((*v).node.id, ());
+        cx.rmap.insert((*v).node.id);
       }
       _ => ()
     }
@@ -95,14 +95,14 @@ fn traverse_public_mod(cx: ctx, mod_id: node_id, m: _mod) {
 }
 
 fn traverse_public_item(cx: ctx, item: @item) {
-    if cx.rmap.contains_key(&item.id) { return; }
-    cx.rmap.insert(item.id, ());
+    if cx.rmap.contains(&item.id) { return; }
+    cx.rmap.insert(item.id);
     match /*bad*/copy item.node {
       item_mod(m) => traverse_public_mod(cx, item.id, m),
       item_foreign_mod(nm) => {
           if !traverse_exports(cx, item.id) {
               for vec::each(nm.items) |item| {
-                  cx.rmap.insert(item.id, ());
+                  cx.rmap.insert(item.id);
               }
           }
       }
@@ -116,14 +116,14 @@ fn traverse_public_item(cx: ctx, item: @item) {
         for vec::each(ms) |m| {
             if tps.len() > 0u || m.tps.len() > 0u ||
                attr::find_inline_attr(m.attrs) != attr::ia_none {
-                cx.rmap.insert(m.id, ());
+                cx.rmap.insert(m.id);
                 traverse_inline_body(cx, m.body);
             }
         }
       }
       item_struct(struct_def, tps) => {
         do option::iter(&struct_def.dtor) |dtor| {
-            cx.rmap.insert(dtor.node.id, ());
+            cx.rmap.insert(dtor.node.id);
             if tps.len() > 0u || attr::find_inline_attr(dtor.node.attrs)
                      != attr::ia_none {
                 traverse_inline_body(cx, dtor.node.body);
@@ -145,8 +145,8 @@ fn mk_ty_visitor() -> visit::vt<ctx> {
 }
 
 fn traverse_ty(ty: @Ty, cx: ctx, v: visit::vt<ctx>) {
-    if cx.rmap.contains_key(&ty.id) { return; }
-    cx.rmap.insert(ty.id, ());
+    if cx.rmap.contains(&ty.id) { return; }
+    cx.rmap.insert(ty.id);
 
     match ty.node {
       ty_path(p, p_id) => {

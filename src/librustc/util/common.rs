@@ -19,7 +19,7 @@ use syntax;
 use core::option;
 use core::str;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 
 pub fn indent<R>(op: fn() -> R) -> R {
     // Use in conjunction with the log post-processor like `src/etc/indenter`
@@ -46,7 +46,7 @@ pub fn indenter() -> _indenter {
     _indenter(())
 }
 
-pub type flag = LinearMap<~str, ()>;
+pub type flag = LinearSet<~str>;
 
 pub fn field_expr(f: ast::field) -> @ast::expr { return f.node.expr; }
 
@@ -107,7 +107,7 @@ pub fn pluralize(n: uint, +s: ~str) -> ~str {
 }
 
 // A set of node IDs (used to keep track of which node IDs are for statements)
-pub type stmt_set = @mut LinearMap<ast::node_id, ()>;
+pub type stmt_set = @mut LinearSet<ast::node_id>;
 
 //
 // Local Variables:

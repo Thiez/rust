@@ -223,7 +223,7 @@ pub impl Datum {
          * `id` is located in the move table, but copies otherwise.
          */
 
-        if bcx.ccx().maps.moves_map.contains_key(&id) {
+        if bcx.ccx().maps.moves_map.contains(&id) {
             self.move_to(bcx, action, dst)
         } else {
             self.copy_to(bcx, action, dst)
@@ -242,7 +242,7 @@ pub impl Datum {
         }
     }
 
-    fn store_to_datum(bcx: block, id: ast::node_id,
+    fn store_to_datum(&self, bcx: block, id: ast::node_id,
                       action: CopyAction, datum: Datum) -> block {
         debug!("store_to_datum(self=%s, action=%?, datum=%s)",
                self.to_str(bcx.ccx()), action, datum.to_str(bcx.ccx()));
@@ -509,7 +509,7 @@ pub impl Datum {
         }
     }
 
-    fn root(bcx: block, root_info: RootInfo) -> block {
+    fn root(&self, bcx: block, root_info: RootInfo) -> block {
         /*!
          *
          * In some cases, borrowck will decide that an @T/@[]/@str
@@ -635,9 +635,9 @@ pub impl Datum {
         // Perform the write guard, if necessary.
         //
         // (Note: write-guarded values are always boxes)
-        let bcx = match ccx.maps.write_guard_map.find(&key) {
-            None => bcx,
-            Some(_) => self.perform_write_guard(bcx)
+        let bcx = match ccx.maps.write_guard_map.contains(&key) {
+            false => bcx,
+            true => self.perform_write_guard(bcx)
         };
 
         match ty::get(self.ty).sty {

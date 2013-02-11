@@ -40,7 +40,7 @@ use core::result;
 use core::to_bytes;
 use core::uint;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use std::oldsmallintmap;
 use syntax::ast::*;
 use syntax::ast_util::{is_local, local_def};
@@ -269,7 +269,7 @@ struct ctxt_ {
     adjustments: @mut LinearMap<ast::node_id, @AutoAdjustment>,
     normalized_cache: @mut LinearMap<t, t>,
     lang_items: middle::lang_items::LanguageItems,
-    legacy_boxed_traits: @mut LinearMap<node_id, ()>,
+    legacy_boxed_traits: @mut LinearSet<node_id>,
     // A mapping from an implementation ID to the method info and trait
     // method ID of the provided (a.k.a. default) methods in the traits that
     // that implementation implements.
@@ -284,7 +284,7 @@ struct ctxt_ {
     destructor_for_type: @mut LinearMap<ast::def_id, ast::def_id>,
 
     // A method will be in this list if and only if it is a destructor.
-    destructors: @mut LinearMap<ast::def_id, ()>,
+    destructors: @mut LinearSet<ast::def_id>,
 
     // Maps a trait onto a mapping from self-ty to impl
     trait_impls: @mut LinearMap<ast::def_id, @mut LinearMap<t, @Impl>>
@@ -831,12 +831,12 @@ pub fn mk_ctxt(s: session::Session,
         adjustments: @mut LinearMap::new(),
         normalized_cache: new_ty_hash(),
         lang_items: move lang_items,
-        legacy_boxed_traits: @mut LinearMap::new(),
+        legacy_boxed_traits: @mut LinearSet::new(),
         provided_methods: @mut LinearMap::new(),
         provided_method_sources: @mut LinearMap::new(),
         supertraits: @mut LinearMap::new(),
         destructor_for_type: @mut LinearMap::new(),
-        destructors: @mut LinearMap::new(),
+        destructors: @mut LinearSet::new(),
         trait_impls: @mut LinearMap::new()
      }
 }
@@ -1674,7 +1674,7 @@ pub fn type_needs_unwind_cleanup(cx: ctxt, ty: t) -> bool {
       None => ()
     }
 
-    let tycache = new_ty_hash();
+    let tycache = @mut LinearSet::new();
     let needs_unwind_cleanup =
         type_needs_unwind_cleanup_(cx, ty, tycache, false);
     cx.needs_unwind_cleanup_cache.insert(ty, needs_unwind_cleanup);
@@ -1682,13 +1682,13 @@ pub fn type_needs_unwind_cleanup(cx: ctxt, ty: t) -> bool {
 }
 
 fn type_needs_unwind_cleanup_(cx: ctxt, ty: t,
-                              tycache: @mut LinearMap<t, ()>,
+                              tycache: @mut LinearSet<t>,
                               encountered_box: bool) -> bool {
 
     // Prevent infinite recursion
-    match tycache.find(&ty) {
-      Some(_) => return false,
-      None => { tycache.insert(ty, ()); }
+    match tycache.contains(&ty) {
+      true => return false,
+      false => { tycache.insert(ty); }
     }
 
     let mut encountered_box = encountered_box;

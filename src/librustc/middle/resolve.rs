@@ -23,7 +23,7 @@ use middle::pat_util::{pat_bindings};
 use core::cmp;
 use core::str;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap,LinearSet};
 use syntax::ast::{RegionTyParamBound, TraitTyParamBound, _mod, add, arm};
 use syntax::ast::{binding_mode, bitand, bitor, bitxor, blk};
 use syntax::ast::{bind_infer, bind_by_ref, bind_by_copy};
@@ -775,7 +775,7 @@ pub fn Resolver(session: Session,
         unused_import_lint_level: unused_import_lint_level(session),
 
         trait_info: @mut LinearMap::new(),
-        structs: @mut LinearMap::new(),
+        structs: @mut LinearSet::new(),
 
         unresolved_imports: 0,
 
@@ -820,8 +820,8 @@ pub struct Resolver {
 
     unused_import_lint_level: level,
 
-    trait_info: @mut LinearMap<def_id,@mut LinearMap<ident,()>>,
-    structs: @mut LinearMap<def_id,()>,
+    trait_info: @mut LinearMap<def_id,@mut LinearSet<ident>>,
+    structs: @mut LinearSet<def_id>,
 
     // The number of imports that are currently unresolved.
     mut unresolved_imports: uint,
@@ -1186,7 +1186,7 @@ pub impl Resolver {
                 }
 
                 // Record the def ID of this struct.
-                self.structs.insert(local_def(item.id), ());
+                self.structs.insert(local_def(item.id));
 
                 visit_item(item, new_parent, visitor);
             }
@@ -1299,7 +1299,7 @@ pub impl Resolver {
                 }
 
                 // Add the names of all the methods to the trait info.
-                let method_names = @mut LinearMap::new();
+                let method_names = @mut LinearSet::new();
                 for (*methods).each |method| {
                     let ty_m = trait_method_to_ty_method(*method);
 
@@ -1323,7 +1323,7 @@ pub impl Resolver {
                                                               ty_m.span);
                         }
                         _ => {
-                            method_names.insert(ident, ());
+                            method_names.insert(ident);
                         }
                     }
                 }
@@ -1372,7 +1372,7 @@ pub impl Resolver {
                                   def_variant(item_id,
                                               local_def(variant.node.id)),
                                   variant.span);
-                self.structs.insert(local_def(variant.node.id), ());
+                self.structs.insert(local_def(variant.node.id));
             }
             enum_variant_kind(ref enum_definition) => {
                 child.define_type(privacy,
@@ -1635,7 +1635,7 @@ pub impl Resolver {
                 // Nothing to do.
               }
               Some(method_names) => {
-                let interned_method_names = @mut LinearMap::new();
+                let interned_method_names = @mut LinearSet::new();
                 for method_names.each |method_data| {
                     let (method_name, self_ty) = *method_data;
                     debug!("(building reduced graph for \
@@ -1645,7 +1645,7 @@ pub impl Resolver {
 
                     // Add it to the trait info if not static.
                     if self_ty != sty_static {
-                        interned_method_names.insert(method_name, ());
+                        interned_method_names.insert(method_name);
                     }
                 }
                 self.trait_info.insert(def_id, interned_method_names);
@@ -1659,7 +1659,7 @@ pub impl Resolver {
                     crate) building type %s",
                    final_ident);
             child_name_bindings.define_type(Public, def, dummy_sp());
-            self.structs.insert(def_id, ());
+            self.structs.insert(def_id);
           }
           def_self(*) | def_arg(*) | def_local(*) |
           def_prim_ty(*) | def_ty_param(*) | def_binding(*) |
@@ -4427,18 +4427,18 @@ pub impl Resolver {
                 pat_struct(path, _, _) => {
                     match self.resolve_path(path, TypeNS, false, visitor) {
                         Some(def_ty(class_id))
-                                if self.structs.contains_key(&class_id)
+                                if self.structs.contains(&class_id)
                                      => {
                             let class_def = def_struct(class_id);
                             self.record_def(pattern.id, class_def);
                         }
                         Some(definition @ def_struct(class_id))
-                                if self.structs.contains_key(&class_id)
+                                if self.structs.contains(&class_id)
                                      => {
                             self.record_def(pattern.id, definition);
                         }
                         Some(definition @ def_variant(_, variant_id))
-                                if self.structs.contains_key(&variant_id)
+                                if self.structs.contains(&variant_id)
                                      => {
                             self.record_def(pattern.id, definition);
                         }
@@ -4887,12 +4887,12 @@ pub impl Resolver {
 
                 match self.resolve_path(path, TypeNS, false, visitor) {
                     Some(def_ty(class_id)) | Some(def_struct(class_id))
-                            if self.structs.contains_key(&class_id) => {
+                            if self.structs.contains(&class_id) => {
                         let class_def = def_struct(class_id);
                         self.record_def(expr.id, class_def);
                     }
                     Some(definition @ def_variant(_, class_id))
-                            if self.structs.contains_key(&class_id) => {
+                            if self.structs.contains(&class_id) => {
                         self.record_def(expr.id, definition);
                     }
                     _ => {
@@ -5116,7 +5116,7 @@ pub impl Resolver {
                self.session.str_of(name));
 
         match self.trait_info.find(&trait_def_id) {
-            Some(trait_info) if trait_info.contains_key(&name) => {
+            Some(trait_info) if trait_info.contains(&name) => {
                 debug!("(adding trait info if containing method) found trait \
                         %d:%d for method '%s'",
                        trait_def_id.crate,

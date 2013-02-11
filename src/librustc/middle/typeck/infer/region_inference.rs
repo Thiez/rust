@@ -556,7 +556,7 @@ use core::uint;
 use core::vec;
 use result::Result;
 use result::{Ok, Err};
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use std::cell::{Cell, empty_cell};
 use std::list::{List, Nil, Cons};
 use syntax::codemap::span;
@@ -1209,10 +1209,10 @@ struct SpannedRegion {
     span: span,
 }
 
-type TwoRegionsMap = @mut LinearMap<TwoRegions, ()>;
+type TwoRegionsMap = @mut LinearSet<TwoRegions>;
 
 fn TwoRegionsMap() -> TwoRegionsMap {
-    return @mut LinearMap::new();
+    return @mut LinearSet::new();
 }
 
 impl RegionVarBindings {
@@ -1521,7 +1521,7 @@ impl RegionVarBindings {
                    r_b: Region)
                 -> bool {
         let key = TwoRegions { a: r_a, b: r_b };
-        !dup_map.insert(key, ())
+        !dup_map.insert(key)
     }
 
     fn report_error_for_expanding_node(&mut self,
@@ -1636,9 +1636,9 @@ impl RegionVarBindings {
                                 orig_node_idx: RegionVid,
                                 dir: Direction)
                              -> ~[SpannedRegion] {
-        let set = @mut LinearMap::new();
+        let set = @mut LinearSet::new();
         let mut stack = ~[orig_node_idx];
-        set.insert(*orig_node_idx, ());
+        set.insert(*orig_node_idx);
         let mut result = ~[];
         while !vec::is_empty(stack) {
             let node_idx = stack.pop();
@@ -1649,7 +1649,7 @@ impl RegionVarBindings {
                       Incoming => from_vid,
                       Outgoing => to_vid
                     };
-                    if set.insert(*vid, ()) {
+                    if set.insert(*vid) {
                         stack.push(vid);
                     }
                   }

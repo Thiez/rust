@@ -2477,7 +2477,7 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
             ccx.sess.bug(~"get_item_val(): unexpected variant")
           }
         };
-        if !(exprt || ccx.reachable.contains_key(&id)) {
+        if !(exprt || ccx.reachable.contains(&id)) {
             lib::llvm::SetLinkage(val, lib::llvm::InternalLinkage);
         }
         ccx.item_vals.insert(id, val);

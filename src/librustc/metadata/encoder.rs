@@ -36,7 +36,7 @@ use core::str;
 use core::to_bytes::IterBytes;
 use core::uint;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use std::serialize::Encodable;
 use std::ebml;
 use std;
@@ -62,7 +62,7 @@ pub type encode_inlined_item = fn@(ecx: @encode_ctxt,
 pub type encode_parms = {
     diag: span_handler,
     tcx: ty::ctxt,
-    reachable: @mut LinearMap<ast::node_id, ()>,
+    reachable: @mut LinearSet<ast::node_id>,
     reexports2: middle::resolve::ExportMap2,
     item_symbols: @mut LinearMap<ast::node_id, ~str>,
     discrim_symbols: @mut LinearMap<ast::node_id, ~str>,
@@ -88,7 +88,7 @@ pub enum encode_ctxt = {
     diag: span_handler,
     tcx: ty::ctxt,
     stats: @mut Stats,
-    reachable: @mut LinearMap<ast::node_id, ()>,
+    reachable: @mut LinearSet<ast::node_id>,
     reexports2: middle::resolve::ExportMap2,
     item_symbols: @mut LinearMap<ast::node_id, ~str>,
     discrim_symbols: @mut LinearMap<ast::node_id, ~str>,
@@ -99,7 +99,7 @@ pub enum encode_ctxt = {
 };
 
 pub fn reachable(ecx: @encode_ctxt, id: node_id) -> bool {
-    ecx.reachable.contains_key(&id)
+    ecx.reachable.contains(&id)
 }
 
 fn encode_name(ecx: @encode_ctxt, ebml_w: writer::Encoder, name: ident) {

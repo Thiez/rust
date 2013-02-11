@@ -63,7 +63,7 @@ use core::uint::range;
 use core::uint;
 use core::vec::{len, push};
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 
 pub struct UniversalQuantificationResult {
     monotype: t,
@@ -177,7 +177,7 @@ pub fn CoherenceChecker(crate_context: @mut CrateCtxt) -> CoherenceChecker {
         inference_context: new_infer_ctxt(crate_context.tcx),
 
         base_type_def_ids: @mut LinearMap::new(),
-        privileged_implementations: @mut LinearMap::new()
+        privileged_implementations: @mut LinearSet::new()
     }
 }
 
@@ -193,7 +193,7 @@ pub struct CoherenceChecker {
     // A set of implementations in privileged scopes; i.e. those
     // implementations that are defined in the same scope as their base types.
 
-    privileged_implementations: @mut LinearMap<node_id,()>,
+    privileged_implementations: @mut LinearSet<node_id>,
 }
 
 pub impl CoherenceChecker {
@@ -496,14 +496,14 @@ pub impl CoherenceChecker {
             f: &fn(x: &ty::method) -> bool) {
         // Make a list of all the names of the provided methods.
         // XXX: This is horrible.
-        let provided_method_idents = @mut LinearMap::new();
+        let provided_method_idents = @mut LinearSet::new();
         let tcx = self.crate_context.tcx;
         for ty::provided_trait_methods(tcx, trait_did).each |ident| {
-            provided_method_idents.insert(*ident, ());
+            provided_method_idents.insert(*ident);
         }
 
         for ty::trait_methods(tcx, trait_did).each |method| {
-            if provided_method_idents.contains_key(&method.ident) {
+            if provided_method_idents.contains(&method.ident) {
                 if !f(method) {
                     break;
                 }
@@ -639,7 +639,7 @@ pub impl CoherenceChecker {
                                 if base_type_def_id.crate == local_crate {
                                     // Record that this implementation is OK.
                                     self.privileged_implementations.insert
-                                        (item.id, ());
+                                        (item.id);
                                     ok = true;
                                 }
                             }
@@ -822,7 +822,7 @@ pub impl CoherenceChecker {
 
     // External crate handling
 
-    fn add_impls_for_module(impls_seen: @mut LinearMap<def_id,()>,
+    fn add_impls_for_module(impls_seen: @mut LinearSet<def_id>,
                             crate_store: @mut CStore,
                             module_def_id: def_id) {
         let implementations = get_impls_for_mod(crate_store,
@@ -835,15 +835,8 @@ pub impl CoherenceChecker {
 
             // Make sure we don't visit the same implementation
             // multiple times.
-            match impls_seen.find(&implementation.did) {
-                None => {
-                    // Good. Continue.
-                    impls_seen.insert(implementation.did, ());
-                }
-                Some(_) => {
-                    // Skip this one.
-                    loop;
-                }
+            if !impls_seen.insert(implementation.did) {
+                loop;
             }
 
             let self_type = lookup_item_type(self.crate_context.tcx,
@@ -943,7 +936,7 @@ pub impl CoherenceChecker {
     // Adds implementations and traits from external crates to the coherence
     // info.
     fn add_external_crates() {
-        let impls_seen = @mut LinearMap::new();
+        let impls_seen = @mut LinearSet::new();
 
         let crate_store = self.crate_context.tcx.sess.cstore;
         do iter_crate_data(crate_store) |crate_number, _crate_metadata| {
@@ -1007,7 +1000,7 @@ pub impl CoherenceChecker {
                 ty::ty_struct(type_def_id, _) => {
                     tcx.destructor_for_type.insert(type_def_id,
                                                    method_def_id);
-                    tcx.destructors.insert(method_def_id, ());
+                    tcx.destructors.insert(method_def_id);
                 }
                 _ => {
                     // Destructors only work on nominal types.

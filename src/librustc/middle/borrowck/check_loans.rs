@@ -35,7 +35,7 @@ use core::cmp;
 use core::dvec::DVec;
 use core::uint;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::ast::{m_const, m_imm, m_mutbl};
 use syntax::ast;
 use syntax::ast_util;
@@ -47,7 +47,7 @@ struct CheckLoanCtxt {
     bccx: @BorrowckCtxt,
     req_maps: req_maps,
 
-    reported: @mut LinearMap<ast::node_id, ()>,
+    reported: @mut LinearSet<ast::node_id>,
 
     declared_purity: @mut ast::purity,
     fn_args: @mut @~[ast::node_id]
@@ -71,7 +71,7 @@ pub fn check_loans(bccx: @BorrowckCtxt,
     let clcx = @mut CheckLoanCtxt {
         bccx: bccx,
         req_maps: req_maps,
-        reported: @mut LinearMap::new(),
+        reported: @mut LinearSet::new(),
         declared_purity: @mut ast::impure_fn,
         fn_args: @mut @~[]
     };
@@ -410,7 +410,7 @@ impl CheckLoanCtxt {
                             id: base.id,
                             derefs: deref_count
                         };
-                        self.bccx.write_guard_map.insert(key, ());
+                        self.bccx.write_guard_map.insert(key);
                     }
                     _ => {}
                 }
@@ -469,7 +469,7 @@ impl CheckLoanCtxt {
           }
           pc_cmt(ref e) => {
             let reported = self.reported;
-            if reported.insert((*e).cmt.id, ()) {
+            if reported.insert((*e).cmt.id) {
                 self.tcx().sess.span_err(
                     (*e).cmt.span,
                     fmt!("illegal borrow unless pure: %s",
@@ -689,7 +689,7 @@ fn check_loans_in_expr(expr: @ast::expr,
 
     self.check_for_conflicting_loans(expr.id);
 
-    if self.bccx.moves_map.contains_key(&expr.id) {
+    if self.bccx.moves_map.contains(&expr.id) {
         self.check_move_out_from_expr(expr);
     }
 

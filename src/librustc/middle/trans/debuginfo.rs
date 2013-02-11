@@ -117,13 +117,13 @@ pub fn mk_ctxt(+crate: ~str, intr: @ident_interner) -> debug_ctxt {
 }
 
 fn update_cache(cache: metadata_cache, mdtag: int, val: debug_metadata) {
-    let v = match cache.swap(mdtag,~[]) {
+    let v = match cache.pop(&mdtag) {
         Some(t) => {
             vec::append_one(t,val)
         }
         None => ~[val]
     };
-    cache.swap(mdtag,v);
+    cache.insert(mdtag,v);
 }
 
 type metadata<T> = {node: ValueRef, data: T};
@@ -176,18 +176,16 @@ fn cached_metadata<T: Copy>(cache: metadata_cache,
                             mdtag: int,
                             eq_fn: fn(md: T) -> bool)
                          -> Option<T> {
-    unsafe {
-        if cache.contains_key(&mdtag) {
-            let items = cache.get(&mdtag);
-            for items.each |item| {
-                let md: T = md_from_metadata::<T>(*item);
-                if eq_fn(md) {
-                    return option::Some(md);
-                }
+    if cache.contains_key(&mdtag) {
+        let items = cache.get(&mdtag);
+        for items.each |item| {
+            let md: T = md_from_metadata::<T>(*item);
+            if eq_fn(md) {
+                return option::Some(md);
             }
         }
-        return option::None;
     }
+    return option::None;
 }
 
 fn create_compile_unit(cx: @crate_ctxt) -> @metadata<compile_unit_md> {

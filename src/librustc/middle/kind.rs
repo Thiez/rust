@@ -23,7 +23,7 @@ use util::ppaux::{ty_to_str, tys_to_str};
 use core::option;
 use core::str;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::ast::*;
 use syntax::codemap::{span, spanned};
 use syntax::print::pprust::expr_to_str;
@@ -60,7 +60,7 @@ use syntax::{visit, ast_util};
 
 pub const try_adding: &str = "Try adding a move";
 
-pub type rval_map = @mut LinearMap<node_id, ()>;
+pub type rval_map = @mut LinearSet<node_id>;
 
 pub type ctx = {
     tcx: ty::ctxt,

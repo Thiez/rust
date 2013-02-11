@@ -101,7 +101,7 @@ use core::dvec::DVec;
 use core::result;
 use core::uint;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::ast::{def_id, sty_by_ref, sty_value, sty_region, sty_box};
 use syntax::ast::{sty_uniq, sty_static, node_id, by_copy, by_ref};
 use syntax::ast::{m_const, m_mutbl, m_imm};
@@ -131,7 +131,7 @@ pub fn lookup(
         callee_id: callee_id,
         m_name: m_name,
         supplied_tps: supplied_tps,
-        impl_dups: LinearMap::new(),
+        impl_dups: LinearSet::new(),
         inherent_candidates: DVec(),
         extension_candidates: DVec(),
         deref_args: deref_args,
@@ -149,7 +149,7 @@ pub struct LookupContext {
     callee_id: node_id,
     m_name: ast::ident,
     supplied_tps: &[ty::t],
-    impl_dups: LinearMap<def_id, ()>,
+    impl_dups: LinearSet<def_id>,
     inherent_candidates: DVec<Candidate>,
     extension_candidates: DVec<Candidate>,
     deref_args: check::DerefArgs,
@@ -619,7 +619,7 @@ pub impl LookupContext {
 
     fn push_candidates_from_impl(&mut self, candidates: &DVec<Candidate>,
                                  impl_info: &resolve::Impl) {
-        if !self.impl_dups.insert(impl_info.did, ()) {
+        if !self.impl_dups.insert(impl_info.did) {
             return; // already visited
         }
 
@@ -1172,7 +1172,7 @@ pub impl LookupContext {
         match candidate.origin {
             method_static(method_id) | method_self(method_id, _)
                 | method_super(method_id, _) => {
-                bad = self.tcx().destructors.contains_key(&method_id);
+                bad = self.tcx().destructors.contains(&method_id);
             }
             method_param(method_param { trait_id: trait_id, _ }) |
             method_trait(trait_id, _, _) => {

@@ -27,7 +27,7 @@ use util::ppaux;
 use core::result;
 use core::uint;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use result::{Result, Ok, Err};
 use syntax::ast;
 use syntax::ast_util;
@@ -253,7 +253,7 @@ pub fn lookup_vtable(vcx: &VtableContext,
         _ => {
             let mut found = ~[];
 
-            let mut impls_seen = LinearMap::new();
+            let mut impls_seen = LinearSet::new();
 
             match vcx.ccx.coherence_info.extension_methods.find(&trait_id) {
                 None => {
@@ -268,10 +268,10 @@ pub fn lookup_vtable(vcx: &VtableContext,
                         // im is one specific impl of trait_ty.
 
                         // First, ensure we haven't processed this impl yet.
-                        if impls_seen.contains_key(&im.did) {
+                        if impls_seen.contains(&im.did) {
                             loop;
                         }
-                        impls_seen.insert(im.did, ());
+                        impls_seen.insert(im.did);
 
                         // ty::impl_traits gives us the list of all
                         // traits that im implements. Again, usually
@@ -709,7 +709,7 @@ pub fn early_resolve_expr(ex: @ast::expr,
                         let vtable_map = cx.vtable_map;
                         vtable_map.insert(ex.id, @~[vtable]);
                     }
-                    fcx.tcx().legacy_boxed_traits.insert(ex.id, ());
+                    fcx.tcx().legacy_boxed_traits.insert(ex.id);
                 }
             }
           }

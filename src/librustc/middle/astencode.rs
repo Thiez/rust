@@ -908,7 +908,7 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
     //    }
     //}
 
-    do option::iter(&maps.mutbl_map.find(&id)) |_m| {
+    if maps.mutbl_map.contains(&id) {
         do ebml_w.tag(c::tag_table_mutbl) {
             ebml_w.id(id);
         }
@@ -951,14 +951,14 @@ fn encode_side_tables_for_id(ecx: @e::encode_ctxt,
             }
         }
     }
-
-    do option::iter(&tcx.legacy_boxed_traits.find(&id)) |_x| {
+    
+    if tcx.legacy_boxed_traits.contains(&id) {
         do ebml_w.tag(c::tag_table_legacy_boxed_trait) {
             ebml_w.id(id);
         }
     }
 
-    for maps.moves_map.find(&id).each |_| {
+    if maps.moves_map.contains(&id) {
         do ebml_w.tag(c::tag_table_moves_map) {
             ebml_w.id(id);
         }
@@ -1105,11 +1105,11 @@ fn decode_side_tables(xcx: extended_decode_ctxt,
                tag, id, id0);
 
         if tag == (c::tag_table_mutbl as uint) {
-            dcx.maps.mutbl_map.insert(id, ());
+            dcx.maps.mutbl_map.insert(id);
         } else if tag == (c::tag_table_legacy_boxed_trait as uint) {
-            dcx.tcx.legacy_boxed_traits.insert(id, ());
+            dcx.tcx.legacy_boxed_traits.insert(id);
         } else if tag == (c::tag_table_moves_map as uint) {
-            dcx.maps.moves_map.insert(id, ());
+            dcx.maps.moves_map.insert(id);
         } else {
             let val_doc = entry_doc[c::tag_table_val as uint];
             let val_dsr = &reader::Decoder(val_doc);

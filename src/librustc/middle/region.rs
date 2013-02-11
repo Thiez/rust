@@ -30,7 +30,7 @@ use util::common::stmt_set;
 use core::cmp;
 use core::dvec::DVec;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use std::list;
 use std::list::list;
 use syntax::ast_map;
@@ -73,7 +73,7 @@ pub struct ctxt {
     // the condition in a while loop is always a parent.  In those
     // cases, we add the node id of such an expression to this set so
     // that when we visit it we can view it as a parent.
-    root_exprs: @mut LinearMap<ast::node_id, ()>,
+    root_exprs: @mut LinearSet<ast::node_id>,
 
     // The parent scope is the innermost block, statement, call, or match
     // expression during the execution of which the current expression
@@ -291,12 +291,12 @@ pub fn resolve_expr(expr: @ast::expr, cx: ctxt, visitor: visit::vt<ctxt>) {
         new_cx.parent = Some(expr.id);
       }
       ast::expr_while(cond, _) => {
-        new_cx.root_exprs.insert(cond.id, ());
+        new_cx.root_exprs.insert(cond.id);
       }
       _ => {}
     };
 
-    if new_cx.root_exprs.contains_key(&expr.id) {
+    if new_cx.root_exprs.contains(&expr.id) {
         new_cx.parent = Some(expr.id);
     }
 
@@ -362,7 +362,7 @@ pub fn resolve_crate(sess: Session,
     let cx: ctxt = ctxt {sess: sess,
                          def_map: def_map,
                          region_map: @mut LinearMap::new(),
-                         root_exprs: @mut LinearMap::new(),
+                         root_exprs: @mut LinearSet::new(),
                          parent: None};
     let visitor = visit::mk_vt(@visit::Visitor {
         visit_block: resolve_block,

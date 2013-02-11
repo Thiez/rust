@@ -18,7 +18,7 @@ use middle::ty;
 use core::int;
 use core::option::*;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use syntax::codemap::span;
 use syntax::print::pprust::path_to_str;
 use syntax::{ast, ast_util, visit};
@@ -41,7 +41,7 @@ pub type freevar_map = @mut LinearMap<ast::node_id, freevar_info>;
 // in order to start the search.
 fn collect_freevars(def_map: resolve::DefMap, blk: ast::blk)
     -> freevar_info {
-    let seen = @mut LinearMap::new();
+    let seen = @mut LinearSet::new();
     let refs = @mut ~[];
 
     fn ignore_item(_i: @ast::item, &&_depth: int, _v: visit::vt<int>) { }
@@ -69,12 +69,12 @@ fn collect_freevars(def_map: resolve::DefMap, blk: ast::blk)
                       }
                       if i == depth { // Made it to end of loop
                         let dnum = ast_util::def_id_of_def(def).node;
-                        if !seen.contains_key(&dnum) {
+                        if !seen.contains(&dnum) {
                             refs.push(@freevar_entry {
                                 def: def,
                                 span: expr.span,
                             });
-                            seen.insert(dnum, ());
+                            seen.insert(dnum);
                         }
                       }
                     }

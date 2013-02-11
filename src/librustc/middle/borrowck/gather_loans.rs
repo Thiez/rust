@@ -653,7 +653,7 @@ fn add_stmt_to_map(stmt: @ast::stmt,
                    vt: visit::vt<@mut GatherLoanCtxt>) {
     match stmt.node {
         ast::stmt_expr(_, id) | ast::stmt_semi(_, id) => {
-            self.bccx.stmt_map.insert(id, ());
+            self.bccx.stmt_map.insert(id);
         }
         _ => ()
     }

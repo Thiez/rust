@@ -239,7 +239,7 @@ use core::cmp;
 use core::dvec::DVec;
 use core::io;
 use core::result::{Result, Ok, Err};
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 use std::list::{List, Cons, Nil};
 use std::list;
 use syntax::ast::{mutability, m_mutbl, m_imm, m_const};
@@ -268,9 +268,9 @@ pub fn check_crate(
         moves_map: moves_map,
         capture_map: capture_map,
         root_map: root_map(),
-        mutbl_map: @mut LinearMap::new(),
-        write_guard_map: @mut LinearMap::new(),
-        stmt_map: @mut LinearMap::new(),
+        mutbl_map: @mut LinearSet::new(),
+        write_guard_map: @mut LinearSet::new(),
+        stmt_map: @mut LinearSet::new(),
         stats: @mut BorrowStats {
             loaned_paths_same: 0,
             loaned_paths_imm: 0,
@@ -356,11 +356,11 @@ pub struct root_map_key {
 
 // set of ids of local vars / formal arguments that are modified / moved.
 // this is used in trans for optimization purposes.
-pub type mutbl_map = @mut LinearMap<ast::node_id, ()>;
+pub type mutbl_map = @mut LinearSet<ast::node_id>;
 
 // A set containing IDs of expressions of gc'd type that need to have a write
 // guard.
-pub type write_guard_map = @mut LinearMap<root_map_key, ()>;
+pub type write_guard_map = @mut LinearSet<root_map_key>;
 
 // Errors that can occur
 #[deriving_eq]
@@ -509,7 +509,7 @@ pub impl BorrowckCtxt {
     fn add_to_mutbl_map(&self, cmt: cmt) {
         match cmt.cat {
           cat_local(id) | cat_arg(id) => {
-            self.mutbl_map.insert(id, ());
+            self.mutbl_map.insert(id);
           }
           cat_stack_upvar(cmt) => {
             self.add_to_mutbl_map(cmt);

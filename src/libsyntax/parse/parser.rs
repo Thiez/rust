@@ -91,7 +91,7 @@ use core::either;
 use core::result::Result;
 use core::vec::push;
 use core::vec;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::{LinearMap, LinearSet};
 
 #[deriving_eq]
 enum restriction {
@@ -207,7 +207,7 @@ pub fn Parser(sess: parse_sess,
         keywords: ~mut token::keyword_table(),
         strict_keywords: ~mut token::strict_keyword_table(),
         reserved_keywords: ~mut token::reserved_keyword_table(),
-        obsolete_set: ~mut LinearMap::new(),
+        obsolete_set: ~mut LinearSet::new(),
         mod_path_stack: ~[],
     }
 }
@@ -226,12 +226,12 @@ pub struct Parser {
     mut quote_depth: uint, // not (yet) related to the quasiquoter
     reader: reader,
     interner: @token::ident_interner,
-    keywords: ~mut LinearMap<~str, ()>,
-    strict_keywords: ~mut LinearMap<~str, ()>,
-    reserved_keywords: ~mut LinearMap<~str, ()>,
+    keywords: ~mut LinearSet<~str>,
+    strict_keywords: ~mut LinearSet<~str>,
+    reserved_keywords: ~mut LinearSet<~str>,
     /// The set of seen errors about obsolete syntax. Used to suppress
     /// extra detail when the same error is seen twice
-    obsolete_set: ~mut LinearMap<ObsoleteSyntax, ()>,
+    obsolete_set: ~mut LinearSet<ObsoleteSyntax>,
     /// Used to determine the path to externally loaded source files
     mut mod_path_stack: ~[~str],
 

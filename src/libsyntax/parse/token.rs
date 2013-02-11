@@ -22,7 +22,7 @@ use core::cmp;
 use core::str;
 use core::task;
 use core::mutable::Mut;
-use core::hashmap::linear::LinearMap;
+use core::hashmap::linear::LinearSet;
 
 #[auto_encode]
 #[auto_decode]
@@ -454,35 +454,35 @@ pub fn mk_fake_ident_interner() -> @ident_interner {
  * appear as identifiers at all. Reserved keywords are not used anywhere in
  * the language and may not appear as identifiers.
  */
-pub fn keyword_table() -> LinearMap<~str, ()> {
-    let mut keywords = LinearMap::new();
-    for temporary_keyword_table().each_key |&word| {
-        keywords.insert(word, ());
+pub fn keyword_table() -> LinearSet<~str> {
+    let mut keywords = LinearSet::new();
+    for temporary_keyword_table().each |&word| {
+        keywords.insert(word);
     }
-    for strict_keyword_table().each_key |&word| {
-        keywords.insert(word, ());
+    for strict_keyword_table().each |&word| {
+        keywords.insert(word);
     }
-    for reserved_keyword_table().each_key |&word| {
-        keywords.insert(word, ());
+    for reserved_keyword_table().each |&word| {
+        keywords.insert(word);
     }
     keywords
 }
 
 /// Keywords that may be used as identifiers
-pub fn temporary_keyword_table() -> LinearMap<~str, ()> {
-    let mut words = LinearMap::new();
+pub fn temporary_keyword_table() -> LinearSet<~str> {
+    let mut words = LinearSet::new();
     let keys = ~[
         ~"self", ~"static",
     ];
     for keys.each |word| {
-        words.insert(*word, ());
+        words.insert(*word);
     }
     words
 }
 
 /// Full keywords. May not appear anywhere else.
-pub fn strict_keyword_table() -> LinearMap<~str, ()> {
-    let mut words = LinearMap::new();
+pub fn strict_keyword_table() -> LinearSet<~str> {
+    let mut words = LinearSet::new();
     let keys = ~[
         ~"as", ~"assert",
         ~"break",
@@ -502,18 +502,18 @@ pub fn strict_keyword_table() -> LinearMap<~str, ()> {
         ~"while"
     ];
     for keys.each |word| {
-        words.insert(*word, ());
+        words.insert(*word);
     }
     words
 }
 
-pub fn reserved_keyword_table() -> LinearMap<~str, ()> {
-    let mut words = LinearMap::new();
+pub fn reserved_keyword_table() -> LinearSet<~str> {
+    let mut words = LinearSet::new();
     let keys = ~[
         ~"be"
     ];
     for keys.each |word| {
-        words.insert(*word, ());
+        words.insert(*word);
     }
     words
 }
