@@ -2008,8 +2008,8 @@ pub fn trans_enum_def(ccx: @crate_ctxt, enum_definition: ast::enum_def,
 
 pub fn trans_item(ccx: @crate_ctxt, item: ast::item) {
     let _icx = ccx.insn_ctxt("trans_item");
-    let path = match ccx.tcx.items.get(&item.id) {
-        &ast_map::node_item(_, p) => p,
+    let path = match *ccx.tcx.items.get(&item.id) {
+        ast_map::node_item(_, p) => p,
         // tjc: ?
         _ => die!(~"trans_item"),
     };
@@ -2269,8 +2269,8 @@ pub fn fill_fn_pair(bcx: block, pair: ValueRef, llfn: ValueRef,
 
 pub fn item_path(ccx: @crate_ctxt, i: @ast::item) -> path {
     vec::append(
-        match ccx.tcx.items.get(&i.id) {
-            &ast_map::node_item(_, p) => /* bad? */ copy *p,
+        match *ccx.tcx.items.get(&i.id) {
+            ast_map::node_item(_, p) => /* bad? */ copy *p,
                 // separate map for paths?
             _ => die!(~"item_path")
         },
@@ -2325,8 +2325,8 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
       None => {
 
         let mut exprt = false;
-        let val = match ccx.tcx.items.get(&id) {
-          &ast_map::node_item(i, pth) => {
+        let val = match *ccx.tcx.items.get(&id) {
+          ast_map::node_item(i, pth) => {
             let my_path = vec::append(/*bad*/copy *pth,
                                       ~[path_name(i.ident)]);
             match i.node {
@@ -2362,7 +2362,7 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
               _ => die!(~"get_item_val: weird result in table")
             }
           }
-          &ast_map::node_trait_method(trait_method, _, pth) => {
+          ast_map::node_trait_method(trait_method, _, pth) => {
             debug!("get_item_val(): processing a node_trait_method");
             match *trait_method {
               ast::required(_) => {
@@ -2375,11 +2375,11 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
               }
             }
           }
-          &ast_map::node_method(m, _, pth) => {
+          ast_map::node_method(m, _, pth) => {
             exprt = true;
             register_method(ccx, id, pth, m)
           }
-          &ast_map::node_foreign_item(ni, _, pth) => {
+          ast_map::node_foreign_item(ni, _, pth) => {
             exprt = true;
             match ni.node {
                 ast::foreign_item_fn(*) => {
@@ -2403,7 +2403,7 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
                 }
             }
           }
-          &ast_map::node_dtor(_, dt, parent_id, pt) => {
+          ast_map::node_dtor(_, dt, parent_id, pt) => {
             /*
                 Don't just call register_fn, since we don't want to add
                 the implicit self argument automatically (we want to make sure
@@ -2428,7 +2428,7 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
             llfn
           }
 
-          &ast_map::node_variant(ref v, enm, pth) => {
+          ast_map::node_variant(ref v, enm, pth) => {
             let llfn;
             match /*bad*/copy (*v).node.kind {
                 ast::tuple_variant_kind(args) => {
@@ -2454,7 +2454,7 @@ pub fn get_item_val(ccx: @crate_ctxt, id: ast::node_id) -> ValueRef {
             llfn
           }
 
-          &ast_map::node_struct_ctor(struct_def, struct_item, struct_path) => {
+          ast_map::node_struct_ctor(struct_def, struct_item, struct_path) => {
             // Only register the constructor if this is a tuple-like struct.
             match struct_def.ctor_id {
                 None => {

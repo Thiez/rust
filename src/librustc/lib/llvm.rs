@@ -1337,11 +1337,11 @@ pub fn associate_type(tn: type_names, s: @str, t: TypeRef) {
 }
 
 pub fn type_has_name(tn: type_names, t: TypeRef) -> Option<@str> {
-    return tn.type_names.find(&t).map(|t|{**t});
+    return tn.type_names.find(&t).map(|t|{copy **t});
 }
 
 pub fn name_has_type(tn: type_names, s: @str) -> Option<TypeRef> {
-    return tn.named_types.find(&s).map(|t|{**t});
+    return tn.named_types.find(&s).map(|t|{copy **t});
 }
 
 pub fn mk_type_names() -> type_names {

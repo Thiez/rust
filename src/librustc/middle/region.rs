@@ -471,7 +471,8 @@ pub impl DetermineRpCtxt {
     /// the new variance is joined with the old variance.
     fn add_rp(@mut self, id: ast::node_id, variance: region_variance) {
         assert id != 0;
-        let old_variance = self.region_paramd_items.find(&id).map(|t|{**t});
+        let old_variance = self.region_paramd_items.find(&id)
+                                                .map(|t|{copy **t});
         let joined_variance = match old_variance {
           None => variance,
           Some(v) => join_variance(v, variance)

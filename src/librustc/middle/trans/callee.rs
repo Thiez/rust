@@ -232,13 +232,13 @@ pub fn trans_fn_ref_with_vtables(
     if type_params.len() > 0 || opt_impl_did.is_some() {
         must_monomorphise = true;
     } else if def_id.crate == ast::local_crate {
-        let map_node = session::expect(
+        let map_node = /*bad*/copy *session::expect(
             ccx.sess,
             ccx.tcx.items.find(&def_id.node),
             || fmt!("local item should be in ast map"));
 
         match map_node {
-            &ast_map::node_foreign_item(_,
+            ast_map::node_foreign_item(_,
                                        ast::foreign_abi_rust_intrinsic,
                                        _) => {
                 must_monomorphise = true;

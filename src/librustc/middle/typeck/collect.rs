@@ -268,9 +268,9 @@ pub fn ensure_trait_methods(ccx: @mut CrateCtxt,
 
 
     let tcx = ccx.tcx;
-    let region_paramd = tcx.region_paramd_items.find(&id).map(|t|{**t});
-    match tcx.items.get(&id) {
-      &ast_map::node_item(@ast::item {
+    let region_paramd = tcx.region_paramd_items.find(&id).map(|t|copy **t);
+    match *tcx.items.get(&id) {
+      ast_map::node_item(@ast::item {
                 node: ast::item_trait(ref params, _, ref ms),
                 _
             }, _) => {
@@ -594,7 +594,7 @@ pub fn ensure_no_ty_param_bounds(ccx: @mut CrateCtxt,
 
 pub fn convert(ccx: @mut CrateCtxt, it: @ast::item) {
     let tcx = ccx.tcx;
-    let rp = tcx.region_paramd_items.find(&it.id).map(|t| {**t});
+    let rp = tcx.region_paramd_items.find(&it.id).map(|t|{copy **t});
     debug!("convert: item %s with id %d rp %?",
            tcx.sess.str_of(it.ident), it.id, rp);
     match /*bad*/copy it.node {
@@ -793,7 +793,7 @@ pub fn ty_of_item(ccx: @mut CrateCtxt, it: @ast::item)
       Some(tpt) => return *tpt,
       _ => {}
     }
-    let rp = tcx.region_paramd_items.find(&it.id).map(|t|{**t});
+    let rp = tcx.region_paramd_items.find(&it.id).map(|t|{copy **t});
     match /*bad*/copy it.node {
       ast::item_const(t, _) => {
         let typ = ccx.to_ty(empty_rscope, t);
@@ -821,7 +821,7 @@ pub fn ty_of_item(ccx: @mut CrateCtxt, it: @ast::item)
           None => { }
         }
 
-        let rp = tcx.region_paramd_items.find(&it.id).map(|t|{**t});
+        let rp = tcx.region_paramd_items.find(&it.id).map(|t|{copy **t});
         let tpt = {
             let ty = {
                 let t0 = ccx.to_ty(type_rscope(rp), t);

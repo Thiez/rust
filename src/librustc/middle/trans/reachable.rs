@@ -70,15 +70,15 @@ fn traverse_def_id(cx: ctx, did: def_id) {
     if did.crate != local_crate { return; }
     let n = match cx.tcx.items.find(&did.node) {
         None => return, // This can happen for self, for example
-        Some(ref n) => (/*bad*/copy *n)
+        Some(ref n) => (/*bad*/copy **n)
     };
     match n {
-      &ast_map::node_item(item, _) => traverse_public_item(cx, item),
-      &ast_map::node_method(_, impl_id, _) => traverse_def_id(cx, impl_id),
-      &ast_map::node_foreign_item(item, _, _) => {
+      ast_map::node_item(item, _) => traverse_public_item(cx, item),
+      ast_map::node_method(_, impl_id, _) => traverse_def_id(cx, impl_id),
+      ast_map::node_foreign_item(item, _, _) => {
         cx.rmap.insert(item.id);
       }
-      &ast_map::node_variant(ref v, _, _) => {
+      ast_map::node_variant(ref v, _, _) => {
         cx.rmap.insert((*v).node.id);
       }
       _ => ()
@@ -145,8 +145,7 @@ fn mk_ty_visitor() -> visit::vt<ctx> {
 }
 
 fn traverse_ty(ty: @Ty, cx: ctx, v: visit::vt<ctx>) {
-    if cx.rmap.contains(&ty.id) { return; }
-    cx.rmap.insert(ty.id);
+    if !cx.rmap.insert(ty.id) { return; }
 
     match ty.node {
       ty_path(p, p_id) => {

@@ -129,15 +129,13 @@ pub fn get_used_link_args(cstore: @mut CStore) -> ~[~str] {
 pub fn add_use_stmt_cnum(cstore: @mut CStore,
                          use_id: ast::node_id,
                          cnum: ast::crate_num) {
-    let use_crate_map = cstore.use_crate_map;
-    use_crate_map.insert(use_id, cnum);
+    cstore.use_crate_map.insert(use_id, cnum);
 }
 
 pub fn find_use_stmt_cnum(cstore: @mut CStore,
                           use_id: ast::node_id)
                        -> Option<ast::crate_num> {
-    let use_crate_map = cstore.use_crate_map;
-    use_crate_map.find(&use_id).map(|t|{**t})
+    cstore.use_crate_map.find(&use_id).map(|t|{copy **t})
 }
 
 // returns hashes of crates directly used by this crate. Hashes are

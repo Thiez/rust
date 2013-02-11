@@ -3440,8 +3440,11 @@ pub impl Resolver {
                   // item, it's ok
                   match def {
                     def_ty_param(did, _)
-                        if self.def_map.find(&did.node).map(|t|{**t})
-                      == Some(def_typaram_binder(item_id)) => {
+                        if self.def_map.contains_key(&did.node) &&
+                           *self.def_map.find(&did.node).get() ==
+                           def_typaram_binder(item_id) => {
+                      /*  if self.def_map.find(&did.node) ==
+                      == def_typaram_binder(item_id)) => { */
                       // ok
                     }
                     _ => {

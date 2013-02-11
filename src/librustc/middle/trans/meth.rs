@@ -308,8 +308,8 @@ pub fn trans_static_method_callee(bcx: block,
     };
 
     let mname = if method_id.crate == ast::local_crate {
-        match bcx.tcx().items.get(&method_id.node) {
-            &ast_map::node_trait_method(trait_method, _, _) => {
+        match *bcx.tcx().items.get(&method_id.node) {
+            ast_map::node_trait_method(trait_method, _, _) => {
                 ast_util::trait_method_to_ty_method(*trait_method).ident
             }
             _ => die!(~"callee is not a trait method")
@@ -362,8 +362,8 @@ pub fn method_from_methods(ms: ~[@ast::method], name: ast::ident)
 pub fn method_with_name(ccx: @crate_ctxt, impl_id: ast::def_id,
                         name: ast::ident) -> ast::def_id {
     if impl_id.crate == ast::local_crate {
-        match ccx.tcx.items.get(&impl_id.node) {
-          &ast_map::node_item(@ast::item {
+        match *ccx.tcx.items.get(&impl_id.node) {
+          ast_map::node_item(@ast::item {
                 node: ast::item_impl(_, _, _, ref ms),
                 _
             }, _) => {
@@ -379,8 +379,8 @@ pub fn method_with_name(ccx: @crate_ctxt, impl_id: ast::def_id,
 pub fn method_with_name_or_default(ccx: @crate_ctxt, impl_id: ast::def_id,
                                    name: ast::ident) -> ast::def_id {
     if impl_id.crate == ast::local_crate {
-        match ccx.tcx.items.get(&impl_id.node) {
-          &ast_map::node_item(@ast::item {
+        match *ccx.tcx.items.get(&impl_id.node) {
+          ast_map::node_item(@ast::item {
                 node: ast::item_impl(_, _, _, ref ms), _
           }, _) => {
               let did = method_from_methods(/*bad*/copy *ms, name);

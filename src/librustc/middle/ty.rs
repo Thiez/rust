@@ -3790,8 +3790,8 @@ pub fn item_path(cx: ctxt, id: ast::def_id) -> ast_map::path {
         csearch::get_item_path(cx, id)
     } else {
         let node = cx.items.get(&id.node);
-        match node {
-          &ast_map::node_item(item, path) => {
+        match *node {
+          ast_map::node_item(item, path) => {
             let item_elt = match item.node {
               item_mod(_) | item_foreign_mod(_) => {
                 ast_map::path_mod(item.ident)
@@ -3803,38 +3803,38 @@ pub fn item_path(cx: ctxt, id: ast::def_id) -> ast_map::path {
             vec::append_one(/*bad*/copy *path, item_elt)
           }
 
-          &ast_map::node_foreign_item(nitem, _, path) => {
+          ast_map::node_foreign_item(nitem, _, path) => {
             vec::append_one(/*bad*/copy *path,
                             ast_map::path_name(nitem.ident))
           }
 
-          &ast_map::node_method(method, _, path) => {
+          ast_map::node_method(method, _, path) => {
             vec::append_one(/*bad*/copy *path,
                             ast_map::path_name(method.ident))
           }
-          &ast_map::node_trait_method(trait_method, _, path) => {
+          ast_map::node_trait_method(trait_method, _, path) => {
             let method = ast_util::trait_method_to_ty_method(*trait_method);
             vec::append_one(/*bad*/copy *path,
                             ast_map::path_name(method.ident))
           }
 
-          &ast_map::node_variant(ref variant, _, path) => {
+          ast_map::node_variant(ref variant, _, path) => {
             vec::append_one(vec::init(*path),
                             ast_map::path_name((*variant).node.name))
           }
 
-          &ast_map::node_dtor(_, _, _, path) => {
+          ast_map::node_dtor(_, _, _, path) => {
             vec::append_one(/*bad*/copy *path, ast_map::path_name(
                 syntax::parse::token::special_idents::literally_dtor))
           }
 
-          &ast_map::node_struct_ctor(_, item, path) => {
+          ast_map::node_struct_ctor(_, item, path) => {
             vec::append_one(/*bad*/copy *path, ast_map::path_name(item.ident))
           }
 
-          &ast_map::node_stmt(*) | &ast_map::node_expr(*) |
-          &ast_map::node_arg(*) | &ast_map::node_local(*) |
-          &ast_map::node_block(*) => {
+          ast_map::node_stmt(*) | ast_map::node_expr(*) |
+          ast_map::node_arg(*) | ast_map::node_local(*) |
+          ast_map::node_block(*) => {
             cx.sess.bug(fmt!("cannot find item_path for node %?", node));
           }
         }
@@ -3866,8 +3866,8 @@ pub fn enum_variants(cx: ctxt, id: ast::def_id) -> @~[VariantInfo] {
           call eval_const_expr, it should never get called twice for the same
           expr, since check_enum_variants also updates the enum_var_cache
          */
-        match cx.items.get(&id.node) {
-          &ast_map::node_item(@ast::item {
+        match *cx.items.get(&id.node) {
+          ast_map::node_item(@ast::item {
                     node: ast::item_enum(ref enum_definition, _),
                     _
                 }, _) => {

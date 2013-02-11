@@ -84,7 +84,7 @@ struct Stats {
     n_inlines: uint
 }
 
-pub enum encode_ctxt = {
+pub struct encode_ctxt {
     diag: span_handler,
     tcx: ty::ctxt,
     stats: @mut Stats,
@@ -96,7 +96,7 @@ pub enum encode_ctxt = {
     cstore: @mut cstore::CStore,
     encode_inlined_item: encode_inlined_item,
     type_abbrevs: abbrev_map
-};
+}
 
 pub fn reachable(ecx: @encode_ctxt, id: node_id) -> bool {
     ecx.reachable.contains(&id)
@@ -883,8 +883,8 @@ fn encode_info_for_items(ecx: @encode_ctxt, ebml_w: writer::Encoder,
             let ebml_w = copy ebml_w;
             |i, cx, v| {
                 visit::visit_item(i, cx, v);
-                match ecx.tcx.items.get(&i.id) {
-                    &ast_map::node_item(_, pt) => {
+                match *ecx.tcx.items.get(&i.id) {
+                    ast_map::node_item(_, pt) => {
                         encode_info_for_item(ecx, ebml_w, i,
                                              index, *pt);
                     }
@@ -896,8 +896,8 @@ fn encode_info_for_items(ecx: @encode_ctxt, ebml_w: writer::Encoder,
             let ebml_w = copy ebml_w;
             |ni, cx, v| {
                 visit::visit_foreign_item(ni, cx, v);
-                match ecx.tcx.items.get(&ni.id) {
-                    &ast_map::node_foreign_item(_, abi, pt) => {
+                match *ecx.tcx.items.get(&ni.id) {
+                    ast_map::node_foreign_item(_, abi, pt) => {
                         encode_info_for_foreign_item(ecx, ebml_w, ni,
                                                      index, /*bad*/copy *pt,
                                                      abi);
@@ -1178,7 +1178,7 @@ pub fn encode_metadata(parms: encode_parms, crate: &crate) -> ~[u8] {
         total_bytes: 0,
         n_inlines: 0
     };
-    let ecx: @encode_ctxt = @encode_ctxt({
+    let ecx: @encode_ctxt = @ encode_ctxt {
         diag: parms.diag,
         tcx: parms.tcx,
         stats: @mut move stats,
@@ -1190,7 +1190,7 @@ pub fn encode_metadata(parms: encode_parms, crate: &crate) -> ~[u8] {
         cstore: parms.cstore,
         encode_inlined_item: parms.encode_inlined_item,
         type_abbrevs: ty::new_ty_hash()
-     });
+     };
 
     let ebml_w = writer::Encoder(wr as io::Writer);
 
