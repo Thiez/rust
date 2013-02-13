@@ -496,7 +496,7 @@ pub fn trans_intrinsic(ccx: @crate_ctxt,
             let tp_sz = machine::llbitsize_of_real(ccx, lltp_ty),
             out_sz = machine::llbitsize_of_real(ccx, llout_ty);
           if tp_sz != out_sz {
-              let sp = match ccx.tcx.items.get(&ref_id.get()) {
+              let sp = match *ccx.tcx.items.get(&ref_id.get()) {
                   ast_map::node_expr(e) => e.span,
                   _ => die!(~"reinterpret_cast or forget has non-expr arg")
               };
@@ -953,7 +953,7 @@ pub fn register_foreign_fn(ccx: @crate_ctxt,
 fn abi_of_foreign_fn(ccx: @crate_ctxt, i: @ast::foreign_item)
     -> ast::foreign_abi {
     match attr::first_attr_value_str_by_name(i.attrs, ~"abi") {
-      None => match ccx.tcx.items.get(&i.id) {
+      None => match *ccx.tcx.items.get(&i.id) {
         ast_map::node_foreign_item(_, abi, _) => abi,
         // ??
         _ => die!(~"abi_of_foreign_fn: not foreign")

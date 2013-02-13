@@ -133,7 +133,7 @@ pub fn get_const_val(cx: @crate_ctxt, def_id: ast::def_id) -> ValueRef {
         cx.tcx.sess.bug(~"cross-crate constants");
     }
     if !cx.const_values.contains_key(&def_id.node) {
-        match cx.tcx.items.get(&def_id.node) {
+        match *cx.tcx.items.get(&def_id.node) {
             ast_map::node_item(@ast::item {
                 node: ast::item_const(_, subexpr), _
             }, _) => {

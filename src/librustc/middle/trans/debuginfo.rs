@@ -779,7 +779,7 @@ pub fn create_function(fcx: fn_ctxt) -> @metadata<subprogram_md> {
     let sp = fcx.span.get();
     log(debug, cx.sess.codemap.span_to_str(sp));
 
-    let (ident, ret_ty, id) = match cx.tcx.items.get(&fcx.id) {
+    let (ident, ret_ty, id) = match *cx.tcx.items.get(&fcx.id) {
       ast_map::node_item(item, _) => {
         match /*bad*/copy item.node {
           ast::item_fn(decl, _, _, _) => {

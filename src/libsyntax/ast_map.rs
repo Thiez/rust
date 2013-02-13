@@ -105,10 +105,10 @@ pub enum ast_node {
     node_struct_ctor(@struct_def, @item, @path),
 }
 
-pub type map = LinearMap<node_id, ast_node>;
+pub type map = @mut LinearMap<node_id, ast_node>;
 
 pub struct Ctx {
-    map: @mut map,
+    map: map,
     path: path,
     local_id: uint,
     diag: span_handler,
@@ -141,7 +141,7 @@ pub fn map_crate(diag: span_handler, c: crate) -> map {
         diag: diag,
     };
     visit::visit_crate(c, cx, mk_ast_map_visitor());
-    *cx.map
+    cx.map
 }
 
 // Used for items loaded from external crate that are being inlined into this
@@ -158,7 +158,7 @@ pub fn map_decoded_item(diag: span_handler,
     // even if we did I think it only needs an ordering between local
     // variables that are simultaneously in scope).
     let cx = @mut Ctx {
-        map: @mut map,
+        map: map,
         path: path,
         local_id: 0,
         diag: diag,
