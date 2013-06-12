@@ -19,7 +19,7 @@ use ops::{Drop};
 use option::{Option,Some,None};
 use ptr;
 use sys::{size_of};
-use unstable::intrinsics::{move_val_init,forget};
+use unstable::intrinsics::{move_val_init};
 use unstable::atomics::{AtomicPtr,Acquire,SeqCst};
 
 /// Node that holds a value for the Queue
@@ -41,7 +41,7 @@ impl<T> Node<T> {
 /// A lockless concurrent Queue.
 #[mutable]
 struct MessageQueue<T> {
-    priv head: Node<T>,
+    priv head: *mut Node<T>,
     priv tail: AtomicPtr<Node<T>>
 }
 
@@ -51,7 +51,7 @@ impl<T> Drop for MessageQueue<T> {
         unsafe {
             let this: &mut MessageQueue<T> = transmute(self);
 
-            let mut node = this.head.load(SeqCst);
+            let mut node = this.head;
             while !ptr::is_null(node) {
                 let next = (*node).next.load(SeqCst);
                 (*node).value = None;   // Destroy value if applicable.
@@ -69,7 +69,7 @@ impl<T> MessageQueue<T> {
             // Create a sentinel node.
             let node: *mut Node<T> = transmute(malloc(size_of::<Node<T>>() as u64));
             move_val_init(&mut *node, Node::new());
-            MessageQueue{ head: new(node), tail: AtomicPtr::new(node) }
+            MessageQueue{ head: node, tail: AtomicPtr::new(node) }
         }
     }
 
